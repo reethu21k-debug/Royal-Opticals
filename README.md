@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Royal Opticals — lens inventory system
 
 ## STATUS (honest)
@@ -38,3 +39,7 @@ cd .. && python3 db/tests/test_db.py
 - `suggested_order = MAX(0, target − available)`; `NULL` if either is unknown. Legacy-compatible figure shown separately and labelled.
 - Stock changes only via `SECURITY DEFINER` functions (row-locked, idempotent, append-only ledger, audited). Clients have no direct write policy on stock tables.
 - Catalog is an adjacency tree of verbatim source names; variants hang off *blocks* (grid regions).
+=======
+# Royal-Opticals
+Royal Opticals
+>>>>>>> a3793682ea415ab34c56e66511c763f024e70410
