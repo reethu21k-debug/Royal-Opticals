@@ -23,6 +23,11 @@ export const GET = route(async (req, actor, { params }) => {
     where.push(`(lv.row_label_source ilike ${p} or lv.col_label_source ilike ${p} or wn.source_name ilike ${p} or bn.source_name ilike ${p})`);
   }
   const cond = where.join(' and ');
+  // order=list (List view only): right-hand power (source_col) is the outer loop, left-hand power (source_row) the inner loop.
+  // Every other view keeps the original order. lv.id only breaks exact ties so paging stays stable.
+  const orderBy = sp.get('order') === 'list'
+    ? 'wn.source_path, bn.sort_order, lv.source_col nulls last, lv.source_row nulls last, lv.row_occurrence, lv.id'
+    : 'wn.source_path, bn.sort_order, lv.source_row nulls last, lv.row_occurrence, lv.source_col nulls last';
   const from = `from count_lines l join lens_variants lv on lv.id = l.variant_id
       join catalog_nodes bn on bn.id = lv.block_node_id join catalog_nodes wn on wn.id = bn.parent_id`;
 
@@ -37,7 +42,7 @@ export const GET = route(async (req, actor, { params }) => {
         lv.row_label_source, lv.col_label_source, wn.source_name as workbook, bn.source_name as block,
         (l.counted_quantity - l.recorded_quantity) as difference
       ${from} where ${cond}
-      order by wn.source_path, bn.sort_order, lv.source_row nulls last, lv.row_occurrence, lv.source_col nulls last
+      order by ${orderBy}
       limit $${args.length + 1} offset $${args.length + 2}`, [...args, size, offset])).rows;
     const total = (await c.query(`select count(*)::int n ${from} where ${cond}`, args)).rows[0].n;
     return { session: s, summary: sum, page, pageSize: size, total, items: lines };

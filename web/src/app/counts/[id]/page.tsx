@@ -36,12 +36,15 @@ export default function Count() {
 
   useEffect(() => { const t = setTimeout(() => { setQd(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
 
+  // List view (explicitly chosen, or shown automatically once counting is closed) uses the right-hand-power-first order. Quick and Grid are unchanged.
+  const listOrder = view === 'list' || (view !== 'grid' && !!data && data.session.status !== 'open');
+
   useEffect(() => {
     let alive = true;
-    const qs = new URLSearchParams({ page: String(page), pageSize: view === 'list' ? '100' : '200', filter, ...(qd ? { q: qd } : {}) });
+    const qs = new URLSearchParams({ page: String(page), pageSize: view === 'list' ? '100' : '200', filter, ...(qd ? { q: qd } : {}), ...(listOrder ? { order: 'list' } : {}) });
     api<Data>(`/api/counts/${id}?${qs}`).then(d => alive && (setData(d), setErr(''))).catch(e => alive && setErr(e.message));
     return () => { alive = false; };
-  }, [id, page, filter, qd, reload, view]);
+  }, [id, page, filter, qd, reload, view, listOrder]);
 
   const act = useCallback(async (action: string) => {
     setErr(''); setMsg(''); setBusy(true);
