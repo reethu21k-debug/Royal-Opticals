@@ -1,0 +1,132 @@
+/* Billing screens only. CSS module: cannot affect any other page. */
+
+/* ── customer details ── */
+.head{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) minmax(150px,1fr);gap:12px;margin:0 0 14px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+@media (max-width:700px){.head{grid-template-columns:1fr 1fr}.head label:first-child{grid-column:1/-1}}
+.field{display:grid;gap:4px;font-size:12.5px;color:var(--mut);font-weight:600}
+.field input,.field textarea{width:100%;font-weight:400}
+
+/* ── bill lines: one card per line, Right eye then Left eye ── */
+.lines{display:grid;gap:12px}
+.lineCard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.lineOver{border-color:var(--bad)}
+.lineHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--soft);border-bottom:1px solid var(--line)}
+.lineTitle{font-weight:650;font-size:14px}
+.lineSum{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px}
+.lineSum b{color:var(--fg);font-size:15px;margin-left:4px}
+.lineActs{display:flex;gap:6px}
+.lineActs button{height:30px;padding:0 10px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+
+.eyeRow{display:grid;grid-template-columns:30px minmax(250px,1.8fr) repeat(4,minmax(62px,.5fr)) 62px 88px 96px;gap:8px;align-items:end;padding:10px 12px}
+.eyeRow+.eyeRow{border-top:1px dashed var(--line-strong)}
+.eyeRow.rowUnused{opacity:.6}
+.eyeRow.rowUnused:focus-within,.eyeRow.rowUnused:hover{opacity:1}
+.eyeRow.rowOver{background:var(--bad-soft)}
+.eyeTag{grid-row:1/span 3;align-self:center;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font-weight:700;font-size:12px;background:var(--acc-soft);color:var(--acc)}
+.eyeL{background:var(--info-soft);color:var(--info)}
+.lensCell{min-width:0}
+.fld{display:grid;gap:3px;font-size:11.5px;font-weight:600;color:var(--mut);min-width:0}
+.fld input{width:100%;text-align:right;font-weight:400}
+.fld input:disabled{background:var(--soft);color:var(--fg);opacity:1}
+.amount{align-self:end;text-align:right;font-variant-numeric:tabular-nums;font-weight:650;font-size:15px;padding-bottom:7px}
+.amountCap{display:block;font-size:11.5px;font-weight:600;color:var(--mut);text-align:right;margin-bottom:3px}
+
+/* source switch + lens button */
+.srcSeg{display:inline-flex;gap:2px;padding:2px;margin-bottom:6px;background:var(--soft);border-radius:9px}
+.srcSeg button{height:26px;padding:0 11px;border:0;border-radius:7px;background:transparent;color:var(--mut);font-size:12.5px;box-shadow:none}
+.srcSeg button:hover:not(:disabled){background:transparent;box-shadow:none;color:var(--fg)}
+.srcSeg button[aria-pressed=true]{background:#fff;box-shadow:0 1px 3px rgba(20,24,48,.18);font-weight:650}
+.srcSeg button.segInv[aria-pressed=true]{color:var(--ok)}
+.srcSeg button.segExt[aria-pressed=true]{color:var(--warn)}
+.srcSeg button:disabled{cursor:default;opacity:1}
+.srcSeg button:disabled:not([aria-pressed=true]){display:none}
+.pickBtn{width:100%;height:auto;min-height:40px;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;line-height:1.25;border-style:dashed}
+.pickBtn.picked{border-style:solid;background:var(--acc-soft);border-color:var(--acc-line)}
+.pickMain{display:grid;gap:1px;min-width:0}
+.pickMain small{color:var(--mut);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pickHint{display:inline-flex;align-items:center;gap:7px;color:var(--acc-h);font-weight:600}
+.pickStock{flex:none;font-size:12.5px;color:var(--ok);font-weight:650;white-space:nowrap}
+.pickStock.low{color:var(--bad)}
+.warnTxt{color:var(--bad);font-size:12px;display:block;margin-top:3px}
+.roLens{display:grid;gap:1px}
+
+@media (max-width:1180px){
+  .eyeRow{grid-template-columns:30px repeat(4,minmax(0,1fr))}
+  .lensCell{grid-column:2/-1}
+  .amountBox{grid-column:span 2}
+}
+@media (max-width:640px){
+  .eyeRow{grid-template-columns:30px repeat(2,minmax(0,1fr))}
+  .eyeTag{grid-row:1/span 5}
+  .amountBox{grid-column:2/-1}
+}
+
+.addBar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 0}
+.addBar .addBtn{height:42px;padding:0 18px;border-style:dashed;border-color:var(--acc-line);color:var(--acc-h);font-weight:650;display:inline-flex;align-items:center;gap:8px}
+
+/* ── notes + totals ── */
+.foot{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:16px;margin-top:16px;align-items:start}
+@media (max-width:860px){.foot{grid-template-columns:1fr}}
+.totals{display:grid;gap:8px}
+.totals .r{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.totals input{width:130px;text-align:right}
+.totals .big{font-size:17px;font-weight:700;border-top:2px solid var(--line-strong);padding-top:8px}
+.split2{display:flex;gap:8px 18px;flex-wrap:wrap;color:var(--mut);font-size:13px;margin:8px 0 0}
+
+/* ── sticky action bar: totals and Save / Finalize always in reach ── */
+.dock{position:sticky;bottom:0;z-index:20;display:grid;gap:8px;margin-top:16px;padding:10px 14px;background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line-strong);border-radius:var(--radius);box-shadow:var(--shadow-lg)}
+.dock :global(.err),.dock :global(.okmsg){margin:0}
+.dockRow{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.dockNums{display:flex;gap:6px 22px;flex-wrap:wrap;align-items:baseline;font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px}
+.dockNums b{color:var(--fg);font-size:16px;margin-left:5px}
+.dockNums .bal b{font-size:20px}
+.dockBtns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+
+/* ── lens finder dialog ── */
+.overlay{position:fixed;inset:0;background:rgba(12,14,26,.45);z-index:100;display:grid;place-items:start center;padding:6vh 14px;overflow:auto}
+.dialog{background:var(--card-solid);border-radius:var(--radius);box-shadow:var(--shadow-lg);width:min(760px,100%);padding:16px}
+.dlgHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.dlgHead h2{margin:0;font-size:16px}
+.filters{display:grid;grid-template-columns:1fr repeat(3,90px);gap:8px;margin-bottom:8px}
+@media (max-width:560px){.filters{grid-template-columns:1fr 1fr 1fr}.filters .q{grid-column:1/-1}}
+.keys{margin:0 0 8px;font-size:12px;color:var(--mut)}
+.results{display:grid;gap:6px;max-height:50vh;overflow:auto}
+.result{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;width:100%;height:auto;text-align:left}
+.result:disabled{opacity:.55}
+.resultHi{border-color:var(--acc);background:var(--acc-soft);box-shadow:0 0 0 3px var(--ring)}
+.result b{font-weight:650}.result small{display:block;color:var(--mut);font-weight:400}
+.stockN{white-space:nowrap;text-align:right}
+
+/* ── bill list ── */
+.sumStrip{display:flex;gap:10px 28px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);font-size:13px;color:var(--mut)}
+.sumStrip b{display:block;font-size:18px;color:var(--fg);font-variant-numeric:tabular-nums;line-height:1.3}
+.owed{color:var(--warn);font-weight:650}
+.clickRow{cursor:pointer}
+.clickRow:hover td{background:var(--acc-soft)}
+.pickRow{display:flex;gap:6px;align-items:stretch}
+.pickRow .pickBtn{flex:1;min-width:0;width:auto}
+.clearBtn{flex:none;width:40px;height:auto;min-height:40px;padding:0;display:grid;place-items:center;color:var(--bad)}
+.linkBtn{display:inline;height:auto;min-height:0;padding:0;border:0;background:none;box-shadow:none;color:var(--acc-h);font:inherit;font-weight:650;text-decoration:underline;cursor:pointer}
+.linkBtn:hover:not(:disabled){background:none;box-shadow:none}
+.lineHead .srcSeg{margin:0}
+.srcSeg button.segNone[aria-pressed=true]{color:var(--mut)}
+.eyeNone{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.eyeNone .srcSeg{margin:0}
+.eyeNone .eyeTag{grid-row:auto}
+.noneMsg{color:var(--mut);font-size:13px}
+
+/* ── bills list: date filter, bulk download, per-row download ── */
+.dateBar{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:end;margin:0 0 12px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius)}
+.dfld{display:grid;gap:3px;font-size:11.5px;font-weight:600;color:var(--mut)}
+.dfld input{width:auto;min-width:150px;font-weight:400}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{height:34px;padding:0 12px;font-size:13px}
+.dlBar{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:0 0 10px}
+.dlScope{font-size:13.5px;color:var(--mut);font-weight:600;display:inline-flex;gap:12px;align-items:center}
+.dlBtns{display:flex;gap:8px;flex-wrap:wrap}
+.dlBtns button{display:inline-flex;align-items:center;gap:7px}
+.chk{width:36px;text-align:center}
+.chk input{width:16px;height:16px;cursor:pointer}
+.miniBtns{display:inline-flex;gap:6px}
+.miniBtn{height:28px;padding:0 10px;font-size:12.5px}

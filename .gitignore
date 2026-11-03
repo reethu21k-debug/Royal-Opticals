@@ -1,0 +1,33 @@
+node_modules/
+.next/
+web/.test-uri
+__pycache__/
+.env
+.env.*
+!.env.example
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Dependencies
+node_modules/
+web/node_modules/
+.venv/
+
+# Build output
+web/.next/
+web/out/
+
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3

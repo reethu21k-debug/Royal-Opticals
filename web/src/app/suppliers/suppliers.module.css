@@ -1,0 +1,68 @@
+/* Suppliers page only. CSS module: nothing here can leak into other sections. Uses the shared design tokens from globals.css. */
+
+.ws{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(320px,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.ws{grid-template-columns:1fr}}
+
+.supplierBar{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:end;margin-bottom:14px}
+.supplierBar .field{min-width:260px;flex:1;max-width:420px}
+
+/* ── picker ── */
+.picker{padding:14px}
+.tools{display:grid;gap:10px;margin-bottom:10px}
+.searchRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.search{flex:1;min-width:220px;padding-left:34px!important;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555a69' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 10px 50%/16px}
+.filters{display:flex;gap:8px 18px;flex-wrap:wrap;align-items:center}
+.filterGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.filterLabel{font-size:12.5px;color:var(--mut)}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:34px;padding:0 2px}
+.bar .count{font-size:13px;color:var(--mut)}
+.bar .count b{color:var(--fg)}
+.tick{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px}
+
+.list{max-height:min(62vh,660px);overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.ul{list-style:none;margin:0;padding:0}
+.row{display:flex;align-items:center;gap:6px;min-height:50px;padding:6px 12px 6px calc(8px + var(--d,0) * 22px);border-bottom:1px solid var(--line)}
+.ul>li:last-child>.row{border-bottom:0}
+.row:hover{background:var(--soft)}
+.row.on{background:var(--acc-soft)}
+.row.covered{background:var(--soft)}
+button.exp,.expSpace{flex:none;width:28px;height:28px}
+button.exp{padding:0;display:grid;place-items:center;border:0;background:transparent;box-shadow:none;border-radius:8px}
+button.exp:hover:not(:disabled){background:var(--soft-2);box-shadow:none;border:0}
+button.exp .chev{width:16px;height:16px;stroke:var(--mut);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .12s}
+button.exp[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.pick{flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0}
+.pick input{flex:none;width:18px;height:18px}
+.kind{flex:none;width:18px;height:18px;stroke:var(--acc);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.txt{min-width:0;display:grid;gap:1px}
+.name{font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.meta{font-size:12px;color:var(--mut);overflow-wrap:anywhere}
+.tags{flex:none;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;max-width:42%}
+.note{font-size:12px;color:var(--mut)}
+.none{padding:34px 16px;text-align:center;color:var(--mut)}
+
+/* ── selection / actions panel ── */
+.side{position:sticky;top:12px;display:grid;gap:14px;max-height:calc(100vh - 24px);overflow:auto;padding:16px}
+@media (max-width:1100px){.side{position:static;max-height:none}}
+.sideHead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sideHead h3{font-size:15px}
+.chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow:auto}
+.chip{display:inline-flex;align-items:center;gap:2px;max-width:100%;min-height:28px;padding:0 3px 0 11px;border-radius:99px;background:var(--acc-soft);color:var(--acc-h);font-weight:600;font-size:13px}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px}
+button.chipX{height:22px;width:22px;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;display:grid;place-items:center;box-shadow:none}
+button.chipX:hover:not(:disabled){background:rgba(53,68,196,.16);box-shadow:none;border:0}
+button.chipX .xi{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.empty{margin:0;color:var(--mut);font-size:13px}
+.form{display:grid;gap:12px}
+.form .field input{width:100%}
+.help{font-size:12.5px;color:var(--mut);margin:0}
+.msg{margin:0}
+
+.linked{display:grid;gap:6px}
+.linkedList{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px}
+.linkedList li{display:grid;gap:6px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.linkedList li:last-child{border-bottom:0}
+.linkedTop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.linkedActions{display:flex;gap:6px;flex-wrap:wrap}
+.sep{border:0;border-top:1px solid var(--line);margin:0}

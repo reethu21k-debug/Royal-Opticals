@@ -1,0 +1,346 @@
+[
+ {
+  "rel": "KRIPTOK LENS/CR HC KT/ORDER LENS PDF CR HC KT/HC KT -4 COMP.pdf",
+  "pages": 3,
+  "has_text": true,
+  "chars": 1111,
+  "head": "KT HC COMP -0.50*(90) ADD +1.00 +1.25 +1.50 +1.75 +2.00 +2.25 +2.50 +2.75 +3.00",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/CR HC KT/ORDER LENS PDF CR HC KT/ORDER LENS HC KT CYL +3.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 654,
+  "head": "KT HC CYL +3.00*(180) ADD +1.00 +1.25 +1.50 +1.75 +2.00 +2.25 +2.50 +2.75 +3.00",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/CR HC KT/ORDER LENS PDF CR HC KT/ORDER LENS HC KT CYL-4.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 799,
+  "head": "HC KT CYL -4.00*(90) ADD +1.00 +1.25 +1.50 +1.75 +2.00 +2.25 +2.50 +2.75 +3.00",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/CR HC KT/ORDER LENS PDF CR HC KT/ORDER LENS KT HC SPH+6.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 905,
+  "head": "HC KT SPH +6.00 ADD +1.00 +1.25 +1.50 +1.75 +2.00 +2.25 +2.50 +2.75 +3.00",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/CR HC KT/STOCK LENS PDF CR HC KT/KT HC STOCK LENS SHEET.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 217,
+  "head": "KT HC CYL -4.00*(90) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CMP +1.00+2.00'180.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1424,
+  "head": "PG KT HC CMP +1.00+2.00*180 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CMP +3.00+0.50'180.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 919,
+  "head": "PG KT HC CMP+3.00+0.50*180 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CMP -1.00-2.00'90.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1580,
+  "head": "PG KT HC COMP -1.00-2.00*(90) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CMP -3.00-0.50'90.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 985,
+  "head": "PG KT HC COMP -3.00-0.50*(90) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CYL +3.00'180.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 584,
+  "head": "PG KT HC CYL +3*(180) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CYL +3.00'90.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 560,
+  "head": "PG KT HC CYL +3.00*90 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CYL -3.00'180.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 595,
+  "head": "PG KT HC CYL -3.00*180 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC CYL -3.00'90.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 707,
+  "head": "PG KT HC CYL -3.00*90 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC SPH +4.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 952,
+  "head": "PG KT HC SPH +4 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/PG HC KT/ORDER LENS PDF PG KT/ORDER LENS PG KT HC SPH -5.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 689,
+  "head": "PG KT HC SPH -5 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "KRIPTOK LENS/BLUE CUT KT/ORDER LENS PDF BLUE CUT KT/ORDER LENS BLUE CUT KT CYL +2.00'180.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 315,
+  "head": "BLUE CUT KT CYL +2.00*(180) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/BLUE CUT KT/ORDER LENS PDF BLUE CUT KT/ORDER LENS BLUE CUT KT CYL -2.00'90.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 397,
+  "head": "BLUE CUT KT CYL -2.00*(90) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/BLUE CUT KT/ORDER LENS PDF BLUE CUT KT/ORDER LENS BLUE CUT KT SPH +3.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 605,
+  "head": "BLUE CUT SPH +3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/BLUE CUT KT/ORDER LENS PDF BLUE CUT KT/ORDER LENS BLUE CUT KT SPH -3.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 519,
+  "head": "BLUE CUT KT SPH -3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "KRIPTOK LENS/BLUE CUT KT/STOCK LENS PDF BLUE CUT KT/KT HC STOCK LENS SHEET.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 217,
+  "head": "KT HC CYL -4.00*(90) ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "PROGRESSIVE LENS/PROGRESSIVE ORDER LENS PDF/PROG BLUE CUT SPH +3.00 ORDER LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 574,
+  "head": "ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 (+) SPH ORDER LENS",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "PROGRESSIVE LENS/PROGRESSIVE ORDER LENS PDF/PROG HC SPH+3.00 ORDER LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 802,
+  "head": "HC PROGRESSIVE SPH+3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 (+)",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "PROGRESSIVE LENS/PROGRESSIVE ORDER LENS PDF/PROG HMC SPH+3.00 ORDER LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 770,
+  "head": "HMC PROGRESSIVE SPH+3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00 (+)",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "PROGRESSIVE LENS/PROGRESSIVE ORDER LENS PDF/PROG PG HC SPH +3.00 ORDER LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 698,
+  "head": "PG HC PROGRESSIVE +3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50 2.75 3.00",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "PROGRESSIVE LENS/PROGRESSIVE ORDER LENS PDF/VISTA GEN 2.0 PGX PROG SPH+3.00.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 714,
+  "head": "VISTA GEN 2.0 PG PROG SPH+3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "PROGRESSIVE LENS/PROGRESSIVE ORDER LENS PDF/VISTA GEN 2.0 PROG ORDER LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 517,
+  "head": "VISTA GEN 2.0 PROG SPH +3.00 ADD 1.00 1.25 1.50 1.75 2.00 2.25 2.50",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/STOCK LENS PDF SV -6-2/BLUE CUT GREEN SV -6-2 STOCK LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 302,
+  "head": "BLUE CUT GREEN SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/STOCK LENS PDF SV -6-2/BLUE LIGHT BLUE  SV -6-2 STOCK LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 303,
+  "head": "BLUE LIGHT BLUE SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/STOCK LENS PDF SV -6-2/CR HC SV -6-2 STOCK LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 293,
+  "head": "CR HC SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50 -1.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/STOCK LENS PDF SV -6-2/CR HMC SV -6-2 STOCK LENS.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 294,
+  "head": "CR HMC SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50 -1.75",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/ORDER LENS PDF SV -6-2/BLUE CUT HMC GREEN SV -6-2.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1490,
+  "head": "BLUE CUT GREEN SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50",
+  "creator": "Microsoft\u00ae Excel\u00ae for Microsoft 365"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/ORDER LENS PDF SV -6-2/BLUE LIGHT BLUE SV -6-2.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 610,
+  "head": "BLUE LIGHT BLUE SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/ORDER LENS PDF SV -6-2/HC SV -6-2.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1388,
+  "head": "CR HC SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50 -1.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/ORDER LENS PDF SV -6-2/PG BLUE LIGHT SV CORAL.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1202,
+  "head": "PG BLUE LIGHT SV-6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50 -1.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-2 Lens/ORDER LENS PDF SV -6-2/PG HC SV -6-2.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1444,
+  "head": "PG HC SV -6-2 (-) CYL 0.00 -0.25 -0.50 -0.75 -1.00 -1.25 -1.50 -1.75",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV +6+2 Lens/ORDER LENS PDF SV -6-2/ORDER LENS BLUE CUT SV +SPH +CYL.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 285,
+  "head": "(+) SPH (+) CYL +0.25 10 +0.25 10 +0.50 3 +0.50 6 +0.75 2",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV +6+2 Lens/ORDER LENS PDF SV -6-2/ORDER LENS BLUE LIGHT SV +SPH +CYL.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 281,
+  "head": "(+) SPH (+) CYL +0.25 10 +0.25 10 +0.50 5 +0.50 5 +0.75 5",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV +6+2 Lens/ORDER LENS PDF SV -6-2/ORDER LENS PG HC SV +SPH +CYL.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 281,
+  "head": "(+) SPH (+) CYL +0.25 10 +0.25 10 +0.50 5 +0.50 5 +0.75 5",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-4 Lens/ORDER LENS PDF SV -6-4/ORDER LENS BLUE CUT SV -6-4.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1616,
+  "head": "(-) CYL -2.50 -3.00 -3.50 -4.00 (-) SPH (-) CYL (-) SPH LENS QUANTITY",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-4 Lens/ORDER LENS PDF SV -6-4/ORDER LENS BLUE LIGHT SV -6-4.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 1291,
+  "head": "(-) CYL -2.50 -3.00 -3.50 -4.00 (-) SPH (-) CYL (-) SPH LENS QUANTITY",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-4 Lens/ORDER LENS PDF SV -6-4/ORDER LENS HC SV -6-4.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 939,
+  "head": "HC SV -6-4 CMP (-) CYL -2.50 -3.00 -3.50 -4.00 ORDER LENS (-) SPH",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -6-4 Lens/ORDER LENS PDF SV -6-4/ORDER LENS PG HC SV -6-4.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 977,
+  "head": "(-) CYL -2.50 -3.00 -3.50 -4.00 (-) CYL -0.50 -1.00 -1.50 -2.00 (-) SPH",
+  "creator": "Microsoft: Print To PDF"
+ },
+ {
+  "rel": "SINGLE VISION LENS/SV -12-2 Lens/ORDER LENS PDF CR HC SV -14-2.pdf",
+  "pages": 1,
+  "has_text": true,
+  "chars": 746,
+  "head": "(-) CYL 0.00 -0.50 -0.75 -1.00 -1.25 -1.50 -2.00 (-) CYL 0.00 (-) SPH",
+  "creator": "Microsoft\u00ae Excel\u00ae 2019"
+ }
+]

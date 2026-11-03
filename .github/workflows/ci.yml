@@ -1,0 +1,16 @@
+# NOT YET EXECUTED on GitHub (written, not run). Mirrors ops/verify_all.sh. Requires the Excel archive as a private artifact/secret store.
+name: verify
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install openpyxl pgserver "psycopg[binary]" playwright && python -m playwright install --with-deps chromium
+      - name: Fetch the client archive (private)
+        run: echo "provide Excel.zip from private storage and unzip to $RUNNER_TEMP/Excel" && exit 0
+      - run: SRC_ROOT=$RUNNER_TEMP/Excel sh ops/verify_all.sh
