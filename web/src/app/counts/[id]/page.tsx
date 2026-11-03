@@ -41,7 +41,7 @@ export default function Count() {
 
   useEffect(() => {
     let alive = true;
-    const qs = new URLSearchParams({ page: String(page), pageSize: view === 'list' ? '100' : '200', filter, ...(qd ? { q: qd } : {}), ...(listOrder ? { order: 'list' } : {}) });
+    const qs = new URLSearchParams({ page: String(page), pageSize: view === 'list' ? '100' : '200', filter, ...(qd ? { q: qd } : {}), ...(listOrder ? { order: 'list' } : {}), ...(view === 'grid' ? { all: '1' } : {}) });
     api<Data>(`/api/counts/${id}?${qs}`).then(d => alive && (setData(d), setErr(''))).catch(e => alive && setErr(e.message));
     return () => { alive = false; };
   }, [id, page, filter, qd, reload, view, listOrder]);
@@ -212,9 +212,13 @@ export default function Count() {
         </tbody>
       </table>
     </div>}
-    <div className="pager">
+    {mode === 'grid'
+      ? <div className="pager"><span>{data.total.toLocaleString()} lines · whole grid shown</span></div>
+      : <div className="pager">
       <span>Page {page} of {pages} · {data.total.toLocaleString()} lines</span>
       <div className="btns"><button disabled={page <= 1} onClick={() => setPage(page - 1)}>← Prev</button><button disabled={page >= pages} onClick={() => setPage(page + 1)}>Next →</button></div>
     </div>
+    }
+
   </>);
 }

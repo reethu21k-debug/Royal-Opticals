@@ -11,6 +11,7 @@ export const GET = route(async (req, actor, { params }) => {
   const { page, size, offset } = clampPage(sp.get('page'), sp.get('pageSize'));
   const only = sp.get('filter');
   const q = (sp.get('q') ?? '').trim().slice(0, 100);
+  const all = sp.get('all') === '1';   // Grid view: return every matching line (no paging) so each block's grid is complete
 
   const where: string[] = ['l.session_id = $1'];
   const args: unknown[] = [id];
@@ -43,8 +44,8 @@ export const GET = route(async (req, actor, { params }) => {
         (l.counted_quantity - l.recorded_quantity) as difference
       ${from} where ${cond}
       order by ${orderBy}
-      limit $${args.length + 1} offset $${args.length + 2}`, [...args, size, offset])).rows;
+      ${all ? '' : `limit $${args.length + 1} offset $${args.length + 2}`}`, all ? args : [...args, size, offset])).rows;
     const total = (await c.query(`select count(*)::int n ${from} where ${cond}`, args)).rows[0].n;
-    return { session: s, summary: sum, page, pageSize: size, total, items: lines };
+    return { session: s, summary: sum, page: all ? 1 : page, pageSize: all ? Math.max(total, 1) : size, total, items: lines };
   });
 });
