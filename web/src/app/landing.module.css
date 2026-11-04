@@ -156,9 +156,16 @@
 .footLinks a{color:var(--ink);font-weight:500;text-decoration:none}
 .footLinks a:hover{color:var(--acc);text-decoration:underline}
 .word{margin-top:clamp(20px,4vw,48px);font-size:clamp(44px,13.2vw,176px);font-weight:700;letter-spacing:-.055em;line-height:.9;white-space:nowrap;color:rgba(20,24,48,.07);user-select:none}
-.copy{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:18px;padding-bottom:26px;margin-top:8px;border-top:1px solid var(--line);color:var(--mut);font-size:13px}
+
+/* bottom bar: copyright · credit · back to top */
+.copy{display:flex;justify-content:space-between;align-items:center;gap:12px 24px;flex-wrap:wrap;padding-top:18px;padding-bottom:26px;margin-top:8px;border-top:1px solid var(--line);color:var(--mut);font-size:13px}
 .copy a{color:var(--mut);text-decoration:none}
 .copy a:hover{color:var(--ink);text-decoration:underline}
+
+/* "Designed & developed by [Stryvenix logo]" */
+.credit{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+.creditText{font-size:13px;color:var(--mut)}
+.creditLogo{display:block;width:auto;max-width:100%;height:clamp(22px,5vw,32px);object-fit:contain}
 
 /* ───────── responsive ───────── */
 @media(max-width:960px){
@@ -172,10 +179,19 @@
   .specRow{grid-template-columns:minmax(0,1fr);gap:6px;padding:20px 0}
   .info>div{grid-template-columns:28px minmax(0,1fr)}
   .info dt,.info dd{grid-column:2}
+
+  /* footer bottom bar: stack and centre */
+  .copy{flex-direction:column;justify-content:center;text-align:center;gap:14px}
+  .credit{flex-direction:column;gap:6px}
+  .creditLogo{height:28px}
 }
 @media(max-width:520px){
   .steps{grid-template-columns:minmax(0,1fr)}
   .ctaBtns>a{flex:1}
+}
+@media(max-width:380px){
+  .credit{white-space:normal}
+  .creditLogo{height:24px}
 }
 @media(prefers-reduced-motion:reduce){
   .page *{transition:none!important}

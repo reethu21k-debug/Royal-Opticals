@@ -6,6 +6,7 @@ import LandingNav from './LandingNav';
 import BannerCarousel from './BannerCarousel';
 import styles from './landing.module.css';
 import logo from '../../public/Logo.png'; // web/public/Logo.png (1444 × 418)
+import stryvenix from '../../public/Stryvenix-Transparent-Logo.png'; // web/public/Stryvenix-Transparent-Logo.png
 
 export const metadata: Metadata = {
   title: 'Royal Opticals — Eye tests, spectacles & contact lenses',
@@ -175,21 +176,73 @@ export default function Landing() {
           <div className={styles.head}>
             <h2 className={styles.h2}>Drop in or book your eye test</h2>
           </div>
+
           <div className={styles.visitGrid}>
             <dl className={styles.info}>
-              <div><Ic n="pin" /><dt>Address</dt><dd>{SHOP.address.map(l => <span key={l}>{l}</span>)}</dd></div>
-              <div><Ic n="clock" /><dt>Opening hours</dt>
-                <dd className={styles.hours}>{SHOP.hours.map(([d, t]) => <span key={d}><em>{d}</em>{t}</span>)}</dd></div>
-              <div><Ic n="phone" /><dt>Phone</dt><dd><a href={SHOP.phoneHref}>{SHOP.phone}</a></dd></div>
-              <div><Ic n="mail" /><dt>Email</dt><dd><a href={`mailto:${SHOP.email}`}>{SHOP.email}</a></dd></div>
+              <div>
+                <Ic n="pin" />
+                <dt>Address</dt>
+                <dd>
+                  <span>Arts College, Shop No09 Police Complex,</span>
+                  <span>Road, Anantapur, Andhra Pradesh 515001</span>
+                </dd>
+              </div>
+
+              <div>
+                <Ic n="clock" />
+                <dt>Opening hours</dt>
+                <dd className={styles.hours}>
+                  <span>
+                    <em>Everyday</em>10 am–9:30 pm
+                  </span>
+                </dd>
+              </div>
+
+              <div>
+                <Ic n="phone" />
+                <dt>Phone</dt>
+                <dd>
+                  <a href="tel:07799118511">077991 18511</a>
+                </dd>
+              </div>
+
+              <div>
+                <Ic n="mail" />
+                <dt>Email</dt>
+                <dd>
+                  <a href="mailto:contact@royalopticalsatp.com">
+                    contact@royalopticalsatp.com
+                  </a>
+                </dd>
+              </div>
             </dl>
+
             <div className={styles.cta}>
               <h3>Ready for a clearer view?</h3>
-              <p>Call us to book a sight test, or walk in to browse frames and talk to our team.</p>
-              <a href={SHOP.phoneHref} className={styles.bigPhone}>{SHOP.phone}</a>
+              <p>
+                Call us to book a sight test, or walk in to browse frames and talk to our team.
+              </p>
+
+              <a href="tel:07799118511" className={styles.bigPhone}>
+                077991 18511
+              </a>
+
               <div className={styles.ctaBtns}>
-                <a href={SHOP.phoneHref} className={styles.btnP + ' ' + styles.onDark}><Ic n="phone" /> Call now</a>
-                <a href={directions} target="_blank" rel="noopener noreferrer" className={styles.btnS + ' ' + styles.onDark}><Ic n="pin" /> Get directions</a>
+                <a
+                  href="tel:07799118511"
+                  className={styles.btnP + ' ' + styles.onDark}
+                >
+                  <Ic n="phone" /> Call now
+                </a>
+
+                <a
+                  href={directions}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.btnS + ' ' + styles.onDark}
+                >
+                  <Ic n="pin" /> Get directions
+                </a>
               </div>
             </div>
           </div>
@@ -211,6 +264,17 @@ export default function Landing() {
         <div className={styles.wrap}><div className={styles.word} aria-hidden="true">Royal Opticals</div></div>
         <div className={styles.wrap + ' ' + styles.copy}>
           <span>© {new Date().getFullYear()} Royal Opticals. All rights reserved.</span>
+
+          <span className={styles.credit}>
+            <span className={styles.creditText}>Designed &amp; developed by</span>
+            <Image
+              src={stryvenix}
+              alt="Stryvenix"
+              unoptimized
+              className={styles.creditLogo}
+            />
+          </span>
+
           <a href="#top">Back to top</a>
         </div>
       </footer>
