@@ -13,7 +13,15 @@ import b3 from '../../public/banners/Royal_Opticals_3.png';
 import b4 from '../../public/banners/Royal_Opticals_4.png';
 import b5 from '../../public/banners/Royal_Opticals_5.png';
 
-const BANNERS = [b1, b2, b3, b4, b5].map((img, k) => ({ img, alt: `Royal Opticals banner ${k + 1}` }));
+// Alt text describes each banner's actual content (the brand text and tagline are part of the image).
+const ALTS = [
+  'Royal Opticals Ananthapur — a woman and a man wearing sunglasses. “See the World in Your Own Style.”',
+  'Royal Opticals Ananthapur — a woman in black square-frame glasses. “Clearer Vision, Sharper Style.”',
+  'Royal Opticals Ananthapur — four friends wearing eyeglasses. “Clearer Vision, Sharper Style.”',
+  'Royal Opticals Ananthapur — a laughing couple in tinted sunglasses. “Frames That Bring You Closer.”',
+  'Royal Opticals Ananthapur — a woman in black sunglasses. “Own Your Iconic Look.”',
+];
+const BANNERS = [b1, b2, b3, b4, b5].map((img, k) => ({ img, alt: ALTS[k] }));
 const INTERVAL = 5000; // ms between automatic transitions
 
 export default function BannerCarousel() {
@@ -72,7 +80,7 @@ export default function BannerCarousel() {
               aria-label={`${k + 1} of ${n}`}
               aria-hidden={k !== i}
             >
-              <Image src={b.img} alt={b.alt} sizes="(min-width: 1920px) 1920px, 100vw" unoptimized priority={k === 0} />
+              <Image src={b.img} alt={b.alt} sizes="(min-width: 1920px) 1920px, 100vw" priority={k === 0} />
             </div>
           ))}
         </div>

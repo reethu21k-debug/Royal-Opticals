@@ -5,4 +5,5 @@ export function middleware(req: NextRequest) {
   if (!req.cookies.get('ro_session')) { const u = new URL('/login', req.url); u.searchParams.set('next', req.nextUrl.pathname); return NextResponse.redirect(u); }
   return NextResponse.next();
 }
-export const config = { matcher: ['/((?!login|api|_next|favicon.ico).*)'] };
+// Public SEO files and static images must never be redirected to /login, or crawlers and social previews cannot fetch them.
+export const config = { matcher: ['/((?!login|api|_next|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpe?g|webp|avif|svg|ico|webmanifest)$).*)'] };

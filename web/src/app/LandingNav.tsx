@@ -23,7 +23,7 @@ export default function LandingNav({ loggedIn }: { loggedIn: boolean }) {
     <header className={styles.nav}>
       <div className={styles.wrap + ' ' + styles.navIn}>
         <a href="#top" className={styles.logo} onClick={close} aria-label="Royal Opticals — back to top">
-          <Image src={logo} alt="Royal Opticals" priority unoptimized className={styles.logoImg} />
+          <Image src={logo} alt="Royal Opticals logo" priority className={styles.logoImg} />
         </a>
 
         <nav aria-label="Primary" className={styles.links}>

@@ -8,23 +8,54 @@ import styles from './landing.module.css';
 import logo from '../../public/Logo.png'; // web/public/Logo.png (1444 × 418)
 import stryvenix from '../../public/Stryvenix-Transparent-Logo.png'; // web/public/Stryvenix-Transparent-Logo.png
 
+import { BUSINESS, ADDRESS_LINE, SITE_URL } from '@/lib/site';
+const OG_IMAGE = '/og-image.jpg';   // web/public/og-image.jpg (1200 × 630) — stable URL so social previews stay cached across deploys
+const LOGO_URL = '/Logo.png';        // web/public/Logo.png
+
+const TITLE = 'Royal Opticals Anantapur — Eye Tests, Spectacles, Sunglasses & Contact Lenses';
+const DESCRIPTION = 'Royal Opticals is an optical shop in Anantapur, Andhra Pradesh. Eye tests, eyeglasses and sunglass frames, prescription lenses, contact lenses and repairs. Open every day, 10 am–9:30 pm.';
+
 export const metadata: Metadata = {
-  title: 'Royal Opticals — Eye tests, spectacles & contact lenses',
-  description: 'Comprehensive eye tests, a wide range of frames, precision prescription lenses, contact lenses and repairs — all under one roof at Royal Opticals.',
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website', url: '/', siteName: BUSINESS.name, locale: 'en_IN', title: TITLE, description: DESCRIPTION,
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: 'Royal Opticals Ananthapur — spectacles and sunglasses' }],
+  },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION, images: [OG_IMAGE] },
 };
 
-/* ───────── EDIT THESE: your shop details appear in the Visit section and footer ───────── */
-const SHOP = {
-  phone: '+91 00000 00000',
-  phoneHref: 'tel:+910000000000',
-  email: 'hello@example.com',
-  address: ['Shop no. 00, Main Road', 'City, State — 000000'],
-  hours: [
-    ['Monday – Saturday', '10:00 am – 8:00 pm'],
-    ['Sunday', 'Closed'],
-  ] as [string, string][],
+const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${BUSINESS.name}, ${ADDRESS_LINE}`)}`;
+
+// Optician is a Schema.org subtype of LocalBusiness. Only details already published on this page are used; no geo or social links until verified.
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Optician',
+  '@id': `${SITE_URL}/#business`,
+  name: BUSINESS.name,
+  url: `${SITE_URL}/`,
+  logo: `${SITE_URL}${LOGO_URL}`,
+  image: `${SITE_URL}${OG_IMAGE}`,
+  description: DESCRIPTION,
+  telephone: BUSINESS.phoneE164,
+  email: BUSINESS.email,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: BUSINESS.address.street,
+    addressLocality: BUSINESS.address.locality,
+    addressRegion: BUSINESS.address.region,
+    postalCode: BUSINESS.address.postalCode,
+    addressCountry: BUSINESS.address.country,
+  },
+  openingHoursSpecification: [{
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    opens: BUSINESS.hours.opens, closes: BUSINESS.hours.closes,
+  }],
+  areaServed: { '@type': 'City', name: 'Anantapur' },
+  ...(BUSINESS.sameAs.length ? { sameAs: BUSINESS.sameAs } : {}),
 };
-const directions = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(SHOP.address.join(', '))}`;
 
 const I: Record<string, JSX.Element> = {
   eye: <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></>,
@@ -85,10 +116,11 @@ export default function Landing() {
   const loggedIn = !!cookies().get('ro_session');
   return (
     <div className={styles.page} id="top">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD).replace(/</g, '\\u003c') }} />
       <LandingNav loggedIn={loggedIn} />
 
       {/* ───────── hero: banner carousel ───────── */}
-      <h1 className={styles.sr}>Royal Opticals — eye tests, spectacles and contact lenses</h1>
+      <h1 className={styles.sr}>Royal Opticals, Anantapur — eye tests, spectacles, sunglasses and contact lenses</h1>
       <BannerCarousel />
 
       {/* ───────── services ───────── */}
@@ -253,7 +285,7 @@ export default function Landing() {
       <footer className={styles.foot}>
         <div className={styles.wrap + ' ' + styles.footIn}>
           <div className={styles.footBrand}>
-            <Image src={logo} alt="Royal Opticals" unoptimized className={styles.logoImg} />
+            <Image src={logo} alt="Royal Opticals logo" className={styles.logoImg} />
             <p>Eye tests, frames, lenses and care.</p>
           </div>
           <nav aria-label="Footer" className={styles.footLinks}>
@@ -270,7 +302,6 @@ export default function Landing() {
             <Image
               src={stryvenix}
               alt="Stryvenix"
-              unoptimized
               className={styles.creditLogo}
             />
           </span>
