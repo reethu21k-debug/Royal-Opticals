@@ -2,7 +2,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import SignOut from './SignOut';
+import logo from '../../public/Logo.png'; // web/public/Logo.png
 
 const ICONS: Record<string, JSX.Element> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>,
@@ -79,7 +81,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <header className="topbar">
       <div className="topbar-in">
         <button type="button" className="menu-btn" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen(o => !o)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
-        <span className="brand m-brand"><span className="brand-mark" aria-hidden="true">RO</span>Royal Opticals</span>
+        <span className="brand brand-logo m-brand"><Image src={logo} alt="Royal Opticals" unoptimized className="brand-logo-img" /></span>
         <nav className="hcrumbs" aria-label="Breadcrumb">
           {cur
             ? <><span>{cur.group}</span><span className="sep" aria-hidden="true">/</span><b aria-current="page">{cur.item.label}</b></>
@@ -93,7 +95,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
     </header>
     <nav className={'sidebar' + (open ? ' open' : '')} aria-label="Main">
-      <Link href="/dashboard" className="brand"><span className="brand-mark" aria-hidden="true">RO</span><span>Royal Opticals<small>Lens inventory</small></span></Link>
+      <Link href="/dashboard" className="brand brand-logo" aria-label="Royal Opticals — dashboard"><Image src={logo} alt="Royal Opticals" priority unoptimized className="brand-logo-img" /></Link>
       {GROUPS.map(g => <div className="side-group" key={g.title}><div className="side-title">{g.title}</div>
         {g.items.map(i => i.download
           ? <a key={i.href} className="side-link" href={i.href}><Icon n={i.icon} />{i.label}</a>
@@ -106,7 +108,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="site-foot-in">
         <div className="foot-grid">
           <div className="foot-brand">
-            <span className="brand"><span className="brand-mark" aria-hidden="true">RO</span><span>Royal Opticals<small>Lens inventory</small></span></span>
+            <span className="brand brand-logo"><Image src={logo} alt="Royal Opticals" unoptimized className="brand-logo-img" /></span>
             <p>Stock, purchasing and reporting for every lens, in one place.</p>
           </div>
           <nav className="foot-nav" aria-label="Footer">

@@ -56,6 +56,11 @@ td code,th code,h1 code,.lens-list code,.pick-head code,.lens code{font-family:i
 .brand{display:flex;align-items:center;gap:11px;padding:6px 10px 16px;color:var(--fg);font-weight:650;font-size:15px;text-decoration:none}
 .brand small{display:block;font-weight:400;color:var(--side-mut);font-size:12px;margin-top:1px}
 .brand-mark{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;background:#0c0e1a;color:#fff;font-weight:800;font-size:13px;box-shadow:0 4px 10px -2px rgba(12,14,26,.35)}
+/* logo image in sidebar / footer / mobile bar */
+.brand-logo{padding:6px 10px 16px}
+.brand-logo-img{display:block;height:44px;width:auto;max-width:100%;object-fit:contain}
+.foot-brand .brand-logo{padding:0 0 10px}
+.m-brand .brand-logo-img,.brand.m-brand .brand-logo-img{height:32px}
 .side-group{margin-bottom:12px}
 .side-title{padding:0 10px 4px;font-size:12px;font-weight:600;color:var(--side-mut)}
 .side-link{display:flex;align-items:center;gap:11px;padding:8px 10px;margin:1px 0;border-radius:9px;color:var(--side-fg);text-decoration:none;font-weight:500;position:relative;transition:background .12s}
