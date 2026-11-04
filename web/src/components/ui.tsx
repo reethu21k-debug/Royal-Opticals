@@ -11,6 +11,7 @@ const PATHS: Record<string, ReactNode> = {
   book: <><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11" /></>,
   grid: <><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M4 10h16M4 15h16M10 4v16M15 4v16" /></>,
   chevron: <path d="m9 6 6 6-6 6" />,
+  edit: <path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16zM14 6l4 4" />,
   chevdown: <path d="m6 9 6 6 6-6" />,
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
   alert: <><path d="M12 4 2.8 19.5h18.4z" /><path d="M12 10v4.5M12 17.2v.1" /></>,

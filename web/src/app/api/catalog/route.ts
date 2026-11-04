@@ -11,7 +11,7 @@ export const GET = route(async (req, actor) => {
     const r = await c.query(`
       with recursive kids as (select id, id as root from catalog_nodes where parent_id is not distinct from $1::uuid
         union all select c.id, k.root from catalog_nodes c join kids k on c.parent_id = k.id)
-      select n.id, n.kind, n.source_name, n.display_label, n.sort_order,
+      select n.id, n.kind, n.source_name, n.original_name, n.display_label, n.sort_order,
         (select count(*)::int from catalog_nodes x where x.parent_id = n.id and x.is_active) as child_count,
         (select count(*)::int from kids k join lens_variants lv on lv.block_node_id = k.id where k.root = n.id) as variant_count
       from catalog_nodes n where n.parent_id is not distinct from $1::uuid and n.is_active

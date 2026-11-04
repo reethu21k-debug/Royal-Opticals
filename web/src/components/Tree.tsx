@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { api } from './api';
 import { Ico } from './ui';
 
-type N = { id: string; kind: string; source_name: string; child_count: number; variant_count: number };
-type Crumb = { id: string; name: string; count?: number };
-type OnSel = (id: string | null, name: string, path?: string[]) => void;
+type N = { id: string; kind: string; source_name: string; original_name?: string | null; child_count: number; variant_count: number };
+type Crumb = { id: string; name: string; count?: number; kind?: string; orig?: string | null };
+type OnSel = (id: string | null, name: string, path?: string[], meta?: { kind?: string; original?: string | null }) => void;
 const KIND_ICON: Record<string, string> = { family: 'folder', folder: 'folder', workbook: 'book', block: 'grid' };
 const KIND_LABEL: Record<string, string> = { family: 'Category', folder: 'Folder', workbook: 'Workbook', block: 'Grid' };
 const fmt = (n: number) => n.toLocaleString();
@@ -24,16 +24,37 @@ function ReportLinks({ id, label }: { id: string | null; label: string }) {
   );
 }
 
+/** Inline rename for one folder / file / grid. The new name is saved on the server in one place, so every screen, export and report shows it. */
+function RenameForm({ initial, original, kindLabel, onSave, onCancel }: { initial: string; original?: string | null; kindLabel: string; onSave: (name: string) => Promise<void>; onCancel: () => void }) {
+  const [v, setV] = useState(initial); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  async function save(name: string) { setBusy(true); setErr(''); try { await onSave(name); } catch (e: any) { setErr(e.message || 'Could not rename'); setBusy(false); } }
+  const changed = v.trim() !== '' && v.trim() !== initial;
+  return (
+    <form className="gb-rename" onSubmit={e => { e.preventDefault(); if (changed) save(v); }} onKeyDown={e => { if (e.key === 'Escape') onCancel(); }}>
+      <div className="row">
+        <input autoFocus aria-label={`New name for this ${kindLabel.toLowerCase()}`} value={v} maxLength={200} onChange={e => setV(e.target.value)} onFocus={e => e.currentTarget.select()} />
+        <button type="submit" className="p" disabled={!changed || busy}>{busy ? 'Saving…' : 'Save name'}</button>
+        <button type="button" disabled={busy} onClick={onCancel}>Cancel</button>
+      </div>
+      <div className="hint">Everything inside keeps its data. The new name shows everywhere in the app, in order reports and in exports.</div>
+      {original && original !== initial && <div className="hint">Originally imported as “{original}”. <button type="button" className="link" disabled={busy} onClick={() => save(original)}>Restore original name</button></div>}
+      {err && <div className="err small" role="alert">{err}</div>}
+    </form>
+  );
+}
+
 /**
  * Drill-down group browser. Shows ONE level at a time as tiles: tap a tile to select it and step inside.
  * The breadcrumb jumps back to any level. The selected group is always the level you are looking at.
  * Same props as before — onSel(id | null, name, path[]) — so every page keeps working.
  * reports: also show "Order report" PDF / Excel download links for the level you are on and for every group tile.
+ * editable: show a rename pencil on every tile and on the level you are inside (folders, files and grids at every depth); onRenamed fires after a save.
  */
-export default function Tree({ sel, onSel, title = 'Browse by group', reports = false }: { sel: string | null; onSel: OnSel; title?: string; reports?: boolean }) {
+export default function Tree({ sel, onSel, title = 'Browse by group', reports = false, editable = false, onRenamed }: { sel: string | null; onSel: OnSel; title?: string; reports?: boolean; editable?: boolean; onRenamed?: (id: string, name: string) => void }) {
   const cache = useRef<Record<string, N[]>>({});
   const [stack, setStack] = useState<Crumb[]>([]);
   const [kids, setKids] = useState<N[] | null>(null); const [err, setErr] = useState(''); const [tick, setTick] = useState(0); const [filter, setFilter] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);   // id of the tile being renamed, or 'cur' for the level you are inside
   const cur = stack.length ? stack[stack.length - 1] : null;
 
   // keep in step with the page: cleared from outside → back to the top; set from outside → show that group
@@ -43,7 +64,7 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
   }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    const key = cur?.id ?? 'root'; setFilter(''); setErr('');
+    const key = cur?.id ?? 'root'; setFilter(''); setErr(''); setEditing(null);
     if (cache.current[key]) { setKids(cache.current[key]); return; }
     let alive = true; setKids(null);
     api<{ items: N[] }>('/api/catalog' + (cur ? `?parentId=${cur.id}` : '')).then(r => { cache.current[key] = r.items; if (alive) setKids(r.items); }).catch(e => alive && setErr(e.message || 'Could not load groups'));
@@ -51,10 +72,21 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
   }, [cur?.id, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const names = (s: Crumb[]) => s.map(c => c.name);
-  function open(n: N) { const next = [...stack, { id: n.id, name: n.source_name, count: n.variant_count }]; setStack(next); onSel(n.id, n.source_name, names(next)); }
+  function open(n: N) { const next = [...stack, { id: n.id, name: n.source_name, count: n.variant_count, kind: n.kind, orig: n.original_name }]; setStack(next); onSel(n.id, n.source_name, names(next), { kind: n.kind, original: n.original_name }); }
+  /** rename on the server, then refresh just what this browser has cached (the list it sits in, and the breadcrumb if it is the current level) */
+  async function rename(id: string, name: string, isCur: boolean) {
+    const r = await api<{ node: { source_name: string; original_name: string | null } }>(`/api/catalog/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
+    const saved = r.node.source_name; const orig = r.node.original_name;
+    if (isCur) {
+      const next = stack.map(c => c.id === id ? { ...c, name: saved, orig } : c); setStack(next);
+      delete cache.current[stack.length > 1 ? stack[stack.length - 2].id : 'root'];   // the list that contains it still has the old name
+      onSel(id, saved, names(next), { kind: cur?.kind, original: orig });
+    } else { delete cache.current[cur?.id ?? 'root']; setTick(t => t + 1); }
+    setEditing(null); onRenamed?.(id, saved);
+  }
   function goTo(depth: number) { // depth -1 = top
     const next = stack.slice(0, depth + 1); setStack(next);
-    if (next.length === 0) onSel(null, '', []); else onSel(next[next.length - 1].id, next[next.length - 1].name, names(next));
+    if (next.length === 0) onSel(null, '', []); else { const t = next[next.length - 1]; onSel(t.id, t.name, names(next), { kind: t.kind, original: t.orig }); }
   }
   const rootTotal = (cache.current['root'] ?? []).reduce((s, r) => s + r.variant_count, 0);
   const total = cur ? cur.count : rootTotal;
@@ -74,8 +106,10 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
 
       <div className="gb-now" aria-live="polite">
         <div><b>{cur ? cur.name : 'All inventory'}</b><span>{total !== undefined && total !== null && (cur || rootTotal) ? `${fmt(total)} lenses` : ''}</span></div>
+        {editable && cur && editing !== 'cur' && <button type="button" className="sm" onClick={() => setEditing('cur')} aria-label={`Rename ${cur.name}`}><Ico n="edit" /> Rename</button>}
         {stack.length > 0 && <button type="button" className="sm" onClick={() => goTo(stack.length - 2)}>← Back</button>}
       </div>
+      {editable && cur && editing === 'cur' && <RenameForm initial={cur.name} original={cur.orig} kindLabel={KIND_LABEL[cur.kind ?? ''] ?? 'item'} onSave={n => rename(cur.id, n, true)} onCancel={() => setEditing(null)} />}
 
       {reports && <ReportLinks id={cur?.id ?? null} label={cur ? cur.name : 'All inventory'} />}
 
@@ -87,6 +121,9 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
         <ul className="gb-list">
           {shown.map(k => (
             <li key={k.id}>
+              {editable && editing === k.id
+                ? <RenameForm initial={k.source_name} original={k.original_name} kindLabel={KIND_LABEL[k.kind] ?? 'item'} onSave={n => rename(k.id, n, false)} onCancel={() => setEditing(null)} />
+                : <div className={editable ? 'gb-row' : undefined}>
               <button type="button" className="gb-tile" onClick={() => open(k)} title={`${k.source_name} · ${KIND_LABEL[k.kind] ?? k.kind}`}>
                 <Ico n={KIND_ICON[k.kind] ?? 'folder'} className="kind" />
                 <span className="gb-main">
@@ -97,6 +134,8 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
                 <span className="gb-count"><b aria-hidden="true">{fmt(k.variant_count)}</b><small aria-hidden="true">lenses</small></span>
                 {k.child_count > 0 && <Ico n="chevron" className="go" />}
               </button>
+              {editable && <button type="button" className="gb-edit" onClick={() => setEditing(k.id)} aria-label={`Rename ${k.source_name}`} title="Rename"><Ico n="edit" /></button>}
+              </div>}
               {reports && <ReportLinks id={k.id} label={k.source_name} />}
             </li>
           ))}

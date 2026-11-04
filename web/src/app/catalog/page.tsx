@@ -8,8 +8,8 @@ export default function CatalogAdmin() {
   const [node, setNode] = useState<string | null>(null); const [name, setName] = useState(''); const [label, setLabel] = useState(''); const [child, setChild] = useState(''); const [msg, setMsg] = useState(''); const [err, setErr] = useState(''); const [rev, setRev] = useState(0);
   async function run(fn: () => Promise<any>, ok: string) { setErr(''); setMsg(''); try { await fn(); setMsg(ok); setRev(r => r + 1); } catch (e: any) { setErr(e.message); } }
   return (<>
-    <PageHeader title="Categories and folders" sub={<>Source names are kept exactly as imported and can’t be renamed. You can add folders, give a folder a <b>display label</b> (shown beside the original name, never replacing it), or archive one.</>} />
-    <div className="split"><Tree key={rev} title="Folders" sel={node} onSel={(id, n) => { setNode(id); setName(n); setLabel(''); }} />
+    <PageHeader title="Categories and folders" sub={<>Rename any folder, file or grid at any level with the pencil — the new name shows everywhere in the app. You can also add folders, add a <b>display label</b>, or archive one. The original imported name is always kept, so you can restore it.</>} />
+    <div className="split"><Tree key={rev} title="Folders" editable sel={node} onSel={(id, n) => { setNode(id); setName(n); setLabel(''); }} onRenamed={(id, n) => { if (id === node) setName(n); setMsg(`Renamed to “${n}”. It now shows across the app.`); setErr(''); }} />
       <div>
         <section className="card" aria-label="Add a folder">
           <h2 className="card-title">Add a folder{node ? <> inside “{name}”</> : ' at the top level'}</h2>

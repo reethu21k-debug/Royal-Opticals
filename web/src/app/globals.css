@@ -56,11 +56,12 @@ td code,th code,h1 code,.lens-list code,.pick-head code,.lens code{font-family:i
 .brand{display:flex;align-items:center;gap:11px;padding:6px 10px 16px;color:var(--fg);font-weight:650;font-size:15px;text-decoration:none}
 .brand small{display:block;font-weight:400;color:var(--side-mut);font-size:12px;margin-top:1px}
 .brand-mark{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;background:#0c0e1a;color:#fff;font-weight:800;font-size:13px;box-shadow:0 4px 10px -2px rgba(12,14,26,.35)}
-/* logo image in sidebar / footer / mobile bar */
-.brand-logo{padding:6px 10px 16px}
-.brand-logo-img{display:block;height:44px;width:auto;max-width:100%;object-fit:contain}
-.foot-brand .brand-logo{padding:0 0 10px}
-.m-brand .brand-logo-img,.brand.m-brand .brand-logo-img{height:32px}
+/* logo image (web/public/Logo.png) used instead of the "RO" box — sidebar top, mobile top bar and footer */
+.brand-logo{display:flex;align-items:center;padding:6px 10px 16px;text-decoration:none}
+.brand-logo-img{display:block;width:auto;height:auto;max-width:100%;max-height:52px;object-fit:contain}
+.sidebar .brand-logo-img{max-height:56px}
+.foot-brand .brand-logo-img{max-height:48px}
+.m-brand .brand-logo-img{max-height:34px;max-width:150px}
 .side-group{margin-bottom:12px}
 .side-title{padding:0 10px 4px;font-size:12px;font-weight:600;color:var(--side-mut)}
 .side-link{display:flex;align-items:center;gap:11px;padding:8px 10px;margin:1px 0;border-radius:9px;color:var(--side-fg);text-decoration:none;font-weight:500;position:relative;transition:background .12s}
@@ -278,6 +279,13 @@ label.check{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
 .tree-note{padding:8px 4px;font-size:13px;color:var(--mut)}
 .tree-skel{display:grid;gap:8px}
 .tree-skel i{display:block;height:64px;border-radius:12px}
+.gb-row{display:flex;align-items:stretch;gap:6px}.gb-row>.gb-tile{flex:1;min-width:0}
+.tree button.gb-edit{flex:none;width:36px;height:auto;min-height:36px;padding:0;display:inline-flex;align-items:center;justify-content:center;align-self:center;border-radius:10px;color:var(--mut)}
+.tree button.gb-edit svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tree button.gb-edit:hover:not(:disabled){color:var(--acc)}
+.gb-rename{display:grid;gap:8px;padding:12px;border:1px solid var(--acc-line);border-radius:12px;background:var(--soft-2)}
+.gb-rename .row{display:flex;gap:8px;flex-wrap:wrap}.gb-rename input{flex:1;min-width:160px}
+.gb-rename .hint{font-size:12px;color:var(--mut);overflow-wrap:anywhere}
 @media(max-width:960px){.tree{position:static;max-height:none;overflow:visible}.tree .gb-tile{min-height:60px}}
 
 /* ───────── tabs, segmented control, pills ───────── */
