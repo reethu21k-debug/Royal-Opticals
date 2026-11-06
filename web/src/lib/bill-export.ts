@@ -3,7 +3,7 @@ import PDFDocument from 'pdfkit';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fmtPower } from './power-format';
-import { lineAmount, money, round2 } from './billing';
+import { lineAmount, money, round2, summarizeBills } from './billing';
 import { billWhere } from './bill-filters';
 
 // Builds the downloadable PDF / Excel files for one or many bills. No React; the only database access is loadBills().
@@ -206,5 +206,77 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
     doc.moveTo(340, doc.y).lineTo(555, doc.y).strokeColor('#999').lineWidth(0.7).stroke(); doc.y += 5; kv('Balance amount', b.balance_amount, true);
     if (b.notes) doc.font('Helvetica').fontSize(9).fillColor('#444').text(`Notes: ${safe(b.notes)}`, 40, doc.y + 10, { width: 300 }).fillColor('#000');
   }
+  doc.end(); await done; return Buffer.concat(chunks);
+}
+
+// ───────────────────────── Customer billing history (statement) ─────────────────────────
+export function statementName(customer: string) { return `Customer-${customer.replace(/[^\w.-]+/g, '_').replace(/^_+|_+$/g, '') || 'history'}-bills`; }
+
+export async function statementXlsx(customer: string, { bills, items }: Loaded): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook(); wb.creator = SHOP; wb.created = new Date();
+  const N2 = '#,##0.00'; const fill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FFE9ECF5' } };
+  const head = (r: ExcelJS.Row) => { r.font = { bold: true }; r.eachCell(c => { c.fill = fill; }); };
+  const sm = summarizeBills(bills);
+
+  const ws = wb.addWorksheet('Summary'); ws.columns = [30, 22].map(width => ({ width }));
+  ws.addRow([SHOP]).font = { bold: true, size: 14 }; ws.addRow([`Billing history: ${customer}`]).font = { bold: true, size: 12 };
+  ws.addRow(['Generated', new Date().toISOString().slice(0, 10)]); ws.addRow([]);
+  for (const [k, v, fmt] of [['Total bills', sm.total], ['Finalized', sm.finalized], ['Drafts', sm.draft], ['Void', sm.void], ['Total billed (excl. void)', sm.billed, N2], ['Balance on latest bill', sm.latestBalance, N2]] as [string, number, string?][]) {
+    const r = ws.addRow([k, v]); if (fmt) r.getCell(2).numFmt = fmt; if (k === 'Total bills') r.font = { bold: true };
+  }
+
+  const wsb = wb.addWorksheet('Bills'); wsb.columns = [14, 12, 11, 15, 15, 14, 14, 12, 12, 14, 40].map(width => ({ width }));
+  head(wsb.addRow(['Bill', 'Date', 'Status', 'Inventory lines', 'External lines', 'Total', 'Old balance', 'Return', 'Advance', 'Balance', 'Notes'])); wsb.views = [{ state: 'frozen', ySplit: 1 }];
+  for (const b of bills) {
+    const its = items.get(b.id) ?? [];
+    const r = wsb.addRow([b.bill_number, b.bill_date, STATUS[b.status] ?? b.status, its.filter(i => i.source === 'inventory').length, its.filter(i => i.source === 'external').length,
+      num(b.total_amount), num(b.old_balance), num(b.return_amount), num(b.advance_amount), num(b.balance_amount), b.notes ?? '']);
+    for (let k = 6; k <= 10; k++) r.getCell(k).numFmt = N2;
+  }
+  const tr = wsb.addRow([`${bills.length} bill${bills.length === 1 ? '' : 's'}`, '', '', '', '', sm.billed, '', '', '', sm.latestBalance, '']); tr.font = { bold: true }; tr.getCell(6).numFmt = N2; tr.getCell(10).numFmt = N2;
+  wsb.addRow(['Total excludes void bills. Balance is the latest non-void bill (it already includes the old balance).']).font = { italic: true, color: { argb: 'FF666666' } };
+  wsb.autoFilter = { from: 'A1', to: 'K1' };
+
+  const wl = wb.addWorksheet('Lines'); wl.columns = [14, 12, 11, 7, 8, 11, 50, 10, 10, 8, 10, 7, 12, 14].map(width => ({ width }));
+  head(wl.addRow(['Bill', 'Date', 'Status', 'Line', 'Eye', 'Source', 'Lens', 'SPH', 'CYL', 'AXIS', 'ADD', 'Qty', 'Rate', 'Amount'])); wl.views = [{ state: 'frozen', ySplit: 1 }];
+  for (const b of bills) for (const i of items.get(b.id) ?? []) {
+    const r = wl.addRow([b.bill_number, b.bill_date, STATUS[b.status] ?? b.status, i.line_no, eyeOf(i), i.source === 'inventory' ? 'Inventory' : 'External', lensText(i), num(i.sph), num(i.cyl), num(i.axis), num(i.add_power), Number(i.quantity), Number(i.rate), amountOf(i)]);
+    for (const k of [8, 9, 11]) r.getCell(k).numFmt = '0.00'; r.getCell(13).numFmt = N2; r.getCell(14).numFmt = N2;
+  }
+  wl.autoFilter = { from: 'A1', to: 'N1' };
+  return Buffer.from((await wb.xlsx.writeBuffer()) as unknown as ArrayBuffer);
+}
+
+export async function statementPdf(customer: string, { bills, items }: Loaded): Promise<Buffer> {
+  const doc = new PDFDocument({ size: 'A4', margin: 40, autoFirstPage: false, info: { Title: `Billing history - ${safe(customer)}` } });
+  const chunks: Buffer[] = []; doc.on('data', (b: Buffer) => chunks.push(b)); const done = new Promise<void>(res => doc.on('end', () => res()));
+  const logo = shopLogo(); const sm = summarizeBills(bills);
+  const C = [100, 72, 72, 50, 110, 111]; const CX = C.map((_, k) => 40 + C.slice(0, k).reduce((a, c) => a + c, 0)); const RH = 20;   // Bill | Date | Status | Lines | Total | Balance (515pt)
+  const cell = (k: number, t: string, y: number, align: 'left' | 'right' | 'center' = 'left') => doc.text(t, CX[k] + 4, y + 6, { width: C[k] - 8, align, lineBreak: false });
+  const header = () => {
+    const y = doc.y; doc.rect(40, y, 515, RH).fill('#eef0f7'); doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(8.5);
+    ['Bill', 'Date', 'Status', 'Lines', 'Total', 'Balance'].forEach((t, k) => cell(k, t, y, k >= 4 ? 'right' : k === 3 ? 'center' : 'left'));
+    doc.fillColor('#000').font('Helvetica'); doc.x = 40; doc.y = y + RH;
+  };
+
+  doc.addPage();
+  if (logo) doc.image(logo, 40, 30, { fit: [LOGO_W, LOGO_H] }); else doc.fillColor('#000').font('Helvetica-Bold').fontSize(17).text(SHOP, 40, 40, { lineBreak: false });
+  doc.fillColor('#000').font('Helvetica-Bold').fontSize(14).text('Billing history', 300, 40, { width: 255, align: 'right', lineBreak: false });
+  doc.font('Helvetica').fontSize(9).fillColor('#555').text(`Generated ${new Date().toISOString().slice(0, 10)}`, 300, 60, { width: 255, align: 'right', lineBreak: false });
+  doc.fillColor('#000').font('Helvetica-Bold').fontSize(12).text(`Customer: ${safe(customer)}`, 40, 92, { width: 515 });
+  doc.font('Helvetica').fontSize(10).text(`Total bills: ${sm.total}   (${sm.finalized} finalized, ${sm.draft} draft, ${sm.void} void)`, 40, doc.y + 4, { width: 515 });
+  doc.text(`Total billed (excl. void): ${money(sm.billed)}      Balance on latest bill: ${money(sm.latestBalance)}`, 40, doc.y + 2, { width: 515 });
+  doc.x = 40; doc.y += 12; header();
+
+  for (const b of bills) {
+    if (doc.y + RH > 770) { doc.addPage(); header(); }
+    const y = doc.y; const void_ = b.status === 'void'; doc.lineWidth(0.5).strokeColor('#c9cfe0').moveTo(40, y + RH).lineTo(555, y + RH).stroke();
+    doc.fillColor(void_ ? '#999' : '#000').font('Helvetica').fontSize(9);
+    cell(0, safe(b.bill_number), y); cell(1, String(b.bill_date ?? ''), y); cell(2, STATUS[b.status] ?? b.status, y); cell(3, String((items.get(b.id) ?? []).length ? new Set((items.get(b.id) ?? []).map(i => i.line_no)).size : 0), y, 'center');
+    cell(4, money(b.total_amount), y, 'right'); cell(5, money(b.balance_amount), y, 'right'); doc.x = 40; doc.y = y + RH;
+  }
+  if (doc.y + 50 > 770) doc.addPage();
+  doc.x = 40; doc.y += 8; doc.fillColor('#000').font('Helvetica-Bold').fontSize(10).text(`${bills.length} bill${bills.length === 1 ? '' : 's'}`, 40, doc.y, { continued: false });
+  doc.font('Helvetica').fontSize(8).fillColor('#666').text('Void bills are listed but not counted in the total billed. Balance is the latest non-void bill (it already includes the old balance).', 40, doc.y + 2, { width: 515 }).fillColor('#000');
   doc.end(); await done; return Buffer.concat(chunks);
 }

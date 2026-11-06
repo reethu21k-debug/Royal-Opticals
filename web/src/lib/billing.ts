@@ -17,3 +17,17 @@ export function deductions(lines: StockLine[]): Map<string, number> {
   for (const l of lines) if (l.source === 'inventory' && l.variantId && l.quantity > 0) m.set(l.variantId, (m.get(l.variantId) ?? 0) + l.quantity);
   return m;
 }
+
+/** Customer names are free text, so "Ravi", "ravi " and "RAVI  K" are matched case-insensitively with spaces collapsed. The SQL in bill-filters.ts applies the same rule. */
+export const normName = (s: string | null | undefined) => String(s ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+export type SummaryBill = { status?: string; total_amount?: unknown; balance_amount?: unknown; bill_date?: string; bill_number?: string };
+/** Customer statement totals. Void bills are counted but never billed. Balance is taken from the latest non-void bill (each bill's balance already carries the old balance, so adding balances up would count it twice). */
+export function summarizeBills(bills: SummaryBill[]) {
+  const live = bills.filter(b => b.status !== 'void');
+  const latest = live.slice().sort((a, b) => String(a.bill_date ?? '').localeCompare(String(b.bill_date ?? '')) || String(a.bill_number ?? '').localeCompare(String(b.bill_number ?? ''))).pop();
+  return {
+    total: bills.length, finalized: bills.filter(b => b.status === 'finalized').length, draft: bills.filter(b => b.status === 'draft').length, void: bills.length - live.length,
+    billed: round2(live.reduce((t, b) => t + Number(b.total_amount ?? 0), 0)), latestBalance: latest ? round2(Number(latest.balance_amount ?? 0)) : 0,
+  };
+}

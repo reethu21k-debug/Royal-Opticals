@@ -51,7 +51,7 @@ export default function Bills() {
 
   return (<>
     <PageHeader title="Billing" sub="Customer bills. Finalizing a bill deducts inventory lenses from stock; external orders are billed but never deducted."
-      actions={<Link className="btn p" href="/billing/new"><Ico n="plus" />New bill</Link>} />
+      actions={<><Link className="btn" href="/billing/customers">Customer history</Link><Link className="btn p" href="/billing/new"><Ico n="plus" />New bill</Link></>} />
     <div className="row" style={{ marginBottom: 10 }}>
       <input type="search" aria-label="Search bills" placeholder="Bill number or customer…" value={q} onChange={e => setQ(e.target.value)} />
       <div className="pills" role="group" aria-label="Status">{TABS.map(([k, l]) => <button type="button" key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
