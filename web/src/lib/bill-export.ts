@@ -123,9 +123,9 @@ const BILL_LOGO_H = 62, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
 // Neutral palette for the bill (print-friendly, no accent colours).
 const INK = '#1f2937', MUTED = '#6b7280', GRID = '#8b93a1', HEADFILL = '#f1f3f6', SOFTLINE = '#d1d5db';
 
-// Lens name for the bill = main lens name + the deepest (leaf) folder name, separated by one space. Parent / intermediate folders are left out.
-// Inventory path from node_path(): family / MAIN LENS / folder / ... / leaf. (Fallback when the path is missing: saved lens_type "main \u203A leaf".)
-// File extensions are removed; if the leaf is the same text as the main name it is shown once; with no deeper folder only the main name is shown.
+// Lens name for the bill = ONLY the deepest (leaf) folder name of the lens's category path; no main lens name, no parent / intermediate folders.
+// Inventory path from node_path(): family / MAIN LENS / folder / ... / leaf. If there is no folder below the main lens, the main lens name is shown instead.
+// (Fallback when the path is missing: saved lens_type "main \u203A leaf".) File extensions are removed.
 // The power values are NOT part of the name - they print in the SPH / CYL / AXIS / ADD columns.
 const FILE_EXT = /\.(xlsx|xlsm|xls|csv|pdf)\b/gi;
 const tidyPart = (v: unknown) => String(v ?? '').replace(FILE_EXT, '').replace(/\s+/g, ' ').trim();
@@ -134,10 +134,8 @@ function pdfLensName(i: Row): string {
   const hasPath = !!i._path;
   const parts = (hasPath ? String(i._path).split(' / ') : String(i.lens_type ?? '').split('\u203A')).map(tidyPart).filter(Boolean);
   const mainIdx = hasPath && parts.length > 1 ? 1 : 0;   // the level after the family is the main lens
-  const main = parts[mainIdx];
-  if (!main) return 'Inventory lens';
-  const leaf = parts.length - 1 > mainIdx ? parts[parts.length - 1] : '';
-  return leaf && leaf.toLowerCase() !== main.toLowerCase() ? `${main} ${leaf}` : main;
+  if (!parts[mainIdx]) return 'Inventory lens';
+  return parts.length - 1 > mainIdx ? parts[parts.length - 1] : parts[mainIdx];   // leaf folder, else the main lens name
 }
 // Right and left eye of one billing line share one PDF row.
 type PdfLine = { no: number; R?: Row; L?: Row };
