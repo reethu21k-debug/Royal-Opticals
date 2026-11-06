@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/components/api';
 import { PageHeader, Badge, Loading, Note, Ico, type Tone } from '@/components/ui';
-import { balanceOf, deductions, fmtPower, lineAmount, money, round2 } from '@/lib/billing';
+import { balanceOf, deductions, fmtPower, lineAmount, money, round2, stockDelta } from '@/lib/billing';
 import { fmtPower as fmtLabel } from '@/lib/power-format';
 import s from './billing.module.css';
 import { downloadFile } from './download';
@@ -114,13 +114,16 @@ export default function BillEditor({ id }: { id?: string }) {
   const [modes, setModes] = useState<Record<string, 'none' | 'open'>>({});   // UI only: which eyes the user marked "None"
   const [err, setErr] = useState<string[]>([]); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
 
+  const [orig, setOrig] = useState<Map<string, number>>(new Map());   // inventory quantities as last saved (to show the stock change of an edit)
   const status: string = bill?.status ?? 'draft';
-  const ro = status !== 'draft';
+  const fin = status === 'finalized';          // finalized bills can be edited: stock is adjusted by the difference
+  const ro = status === 'void';                // only a void bill is read-only
 
   const load = useCallback(async () => {
     if (!id) return;
     try {
       const r = await api(`/api/bills/${id}`); const b = r.bill; setBill(b);
+      const o = new Map<string, number>(); for (const i of r.items) if (i.source === 'inventory' && i.variant_id) o.set(i.variant_id, (o.get(i.variant_id) ?? 0) + Number(i.quantity)); setOrig(o);
       setH({ customerName: b.customer_name ?? '', billDate: b.bill_date ?? '', oldBalance: Number(b.old_balance) ? String(Number(b.old_balance)) : '', returnAmount: Number(b.return_amount) ? String(Number(b.return_amount)) : '', advanceAmount: Number(b.advance_amount) ? String(Number(b.advance_amount)) : '', notes: b.notes ?? '' });
       const byNo = new Map<number, Line>();
       for (const i of r.items) { const l = byNo.get(i.line_no) ?? { key: crypto.randomUUID(), R: blankEye(), L: blankEye() }; l[i.side as Side] = eyeFromItem(i); byNo.set(i.line_no, l); }
@@ -188,7 +191,9 @@ export default function BillEditor({ id }: { id?: string }) {
   const inv = built.items.filter(i => i.source === 'inventory'), ext = built.items.filter(i => i.source === 'external');
   const ded = useMemo(() => deductions(built.items), [built.items]);
   const availOf = useMemo(() => { const m = new Map<string, number | null>(); for (const l of lines) for (const sd of ['R', 'L'] as Side[]) if (l[sd].variantId) m.set(l[sd].variantId!, l[sd].avail); return m; }, [lines]);
-  const overs = useMemo(() => new Set(Array.from(ded).filter(([v, q]) => (availOf.get(v) ?? 0) < q).map(([v]) => v)), [ded, availOf]);
+  const delta = useMemo(() => stockDelta(fin ? orig : new Map(), ded), [fin, orig, ded]);   // draft: everything is new; finalized: only the difference
+  const overs = useMemo(() => new Set(Array.from(delta).filter(([v, q]) => q > 0 && (availOf.get(v) ?? 0) < q).map(([v]) => v)), [delta, availOf]);
+  const netOut = Array.from(delta.values()).reduce((a, d) => a + (d > 0 ? d : 0), 0), netBack = Array.from(delta.values()).reduce((a, d) => a + (d < 0 ? -d : 0), 0);
   const lensCount = Array.from(ded.values()).reduce((a, b) => a + b, 0);
 
   // ── actions ──
@@ -197,16 +202,17 @@ export default function BillEditor({ id }: { id?: string }) {
     setMsg('');
     const errs = [...built.errors];
     if (!built.items.length) errs.push('Add at least one lens to the bill.');
-    if (finalize && overs.size) errs.push('Some inventory lenses do not have enough stock. Reduce the quantity or change the line to External order.');
+    if ((finalize || fin) && overs.size) errs.push('Some inventory lenses do not have enough stock. Reduce the quantity or change the line to External order.');
     if (errs.length) { setErr(errs); return; }
-    if (finalize && !confirm(`Finalize this bill?\n\n• ${lensCount} lens${lensCount === 1 ? '' : 'es'} from ${ded.size} inventory item${ded.size === 1 ? '' : 's'} will be deducted from stock.\n• ${ext.reduce((a, i) => a + i.quantity, 0)} external lens${ext.length === 1 ? '' : 'es'} will be billed but NOT deducted.\n\nA finalized bill can’t be edited (it can be voided by a manager).`)) return;
+    if (fin && !confirm(`Save changes to this finalized bill?\n\n• ${netOut} lens${netOut === 1 ? '' : 'es'} will be taken from stock.\n• ${netBack} lens${netBack === 1 ? '' : 'es'} will be put back in stock.\n• Totals and balance are recalculated. The old version is kept in the audit log.`)) return;
+    if (finalize && !confirm(`Finalize this bill?\n\n• ${lensCount} lens${lensCount === 1 ? '' : 'es'} from ${ded.size} inventory item${ded.size === 1 ? '' : 's'} will be deducted from stock.\n• ${ext.reduce((a, i) => a + i.quantity, 0)} external lens${ext.length === 1 ? '' : 'es'} will be billed but NOT deducted.\n\nA finalized bill can still be edited later; stock is then adjusted by the difference.`)) return;
     setBusy(true); setErr([]);
     try {
       const r = id
         ? await api(`/api/bills/${id}`, { method: 'PUT', body: JSON.stringify(payload(finalize)) })
         : await api('/api/bills', { method: 'POST', body: JSON.stringify({ ...payload(finalize), idempotencyKey: idem.current }) });
       if (!id) { router.replace(`/billing/${r.bill.id}`); return; }
-      await load(); setMsg(finalize ? 'Bill finalized. Inventory has been updated.' : 'Draft saved. Stock has not been changed.');
+      await load(); setMsg(finalize ? 'Bill finalized. Inventory has been updated.' : fin ? 'Changes saved. Stock was adjusted by the difference.' : 'Draft saved. Stock has not been changed.');
     } catch (e: any) { setErr([tidy(e.message)]); } finally { setBusy(false); }
   }
   async function voidBill() {
@@ -214,6 +220,12 @@ export default function BillEditor({ id }: { id?: string }) {
     if (!reason?.trim()) return;
     setBusy(true); setErr([]);
     try { await api(`/api/bills/${id}/action`, { method: 'POST', body: JSON.stringify({ action: 'void', reason }) }); await load(); setMsg('Bill voided.'); }
+    catch (e: any) { setErr([tidy(e.message)]); } finally { setBusy(false); }
+  }
+
+  async function saveName() {
+    setBusy(true); setErr([]); setMsg('');
+    try { await api(`/api/bills/${id}`, { method: 'PATCH', body: JSON.stringify({ customerName: h.customerName }) }); await load(); setMsg('Customer name updated.'); }
     catch (e: any) { setErr([tidy(e.message)]); } finally { setBusy(false); }
   }
 
@@ -245,14 +257,20 @@ export default function BillEditor({ id }: { id?: string }) {
       sub="Pick each lens from the inventory, or mark it as an External order. Only inventory lenses are deducted from stock."
       crumbs={[{ label: 'Billing', href: '/billing' }, { label: bill ? bill.bill_number : 'New bill' }]} />
 
-    {status === 'finalized' && <Note tone="ok" icon="check">Finalized. Stock was deducted for the inventory lenses only; external orders did not affect stock.</Note>}
+    {status === 'finalized' && <Note tone="ok" icon="check">Finalized. You can still edit this bill: when you save, stock is adjusted only by the difference (inventory lenses only; external orders never affect stock).</Note>}
     {status === 'void' && <Note tone="warn" icon="alert">This bill was voided{bill?.void_reason ? `: ${bill.void_reason}` : ''}. Inventory lenses on it were put back in stock.</Note>}
 
     <div className={s.head}>
-      <label className={s.field}>Customer name<input value={h.customerName} disabled={ro} onChange={e => setH({ ...h, customerName: e.target.value })} placeholder="Customer / shop name" /></label>
+      <label className={s.field}>Customer name<input value={h.customerName} onChange={e => setH({ ...h, customerName: e.target.value })} placeholder="Customer / shop name" /></label>
       <label className={s.field}>Date<input type="date" value={h.billDate} disabled={ro} onChange={e => setH({ ...h, billDate: e.target.value })} /></label>
       <label className={s.field}>Old balance (O.B.)<input inputMode="decimal" value={h.oldBalance} disabled={ro} onChange={e => setH({ ...h, oldBalance: e.target.value })} placeholder="0.00" /></label>
     </div>
+
+    {ro && id && h.customerName.trim() !== (bill?.customer_name ?? '') && <div className={s.addBar}>
+      <button type="button" className="p" disabled={busy} onClick={saveName}>Save customer name</button>
+      <button type="button" disabled={busy} onClick={() => setH(x => ({ ...x, customerName: bill?.customer_name ?? '' }))}>Undo</button>
+      <span className="mut small">Only the name changes. Lines, totals and stock stay as they are.</span>
+    </div>}
 
     <div className={s.lines} role="region" aria-label="Bill lines">
       {lines.map((l, idx) => {
@@ -324,7 +342,7 @@ export default function BillEditor({ id }: { id?: string }) {
       <div>
         <label className={s.field}>Notes<textarea rows={3} value={h.notes} disabled={ro} onChange={e => setH({ ...h, notes: e.target.value })} style={{ height: 'auto', padding: 10 }} /></label>
         <div className={s.split2} aria-live="polite">
-          <span><Badge tone="ok">Inventory</Badge> {inv.length} lens line{inv.length === 1 ? '' : 's'}{!ro && lensCount > 0 ? ` · ${lensCount} to deduct on finalize` : ''}</span>
+          <span><Badge tone="ok">Inventory</Badge> {inv.length} lens line{inv.length === 1 ? '' : 's'}{!ro && !fin && lensCount > 0 ? ` · ${lensCount} to deduct on finalize` : ''}{fin ? ` · stock change on save: ${netOut} out, ${netBack} back` : ''}</span>
           <span><Badge tone="warn">External</Badge> {ext.length} lens line{ext.length === 1 ? '' : 's'} · never deducted</span>
         </div>
       </div>
@@ -344,13 +362,15 @@ export default function BillEditor({ id }: { id?: string }) {
         <div className={s.dockNums} aria-live="polite"><span>Total<b>{money(total)}</b></span><span className="bal">Balance<b>{money(balance)}</b></span></div>
         <div className={s.dockBtns}>
           {id && status !== 'void' && <button type="button" className="danger" disabled={busy} onClick={voidBill}>{status === 'finalized' ? 'Void bill' : 'Cancel draft'}</button>}
-          {!ro && <>
+          {fin && <button type="button" className="p big" disabled={busy} onClick={() => save(false)}>{busy ? 'Saving…' : 'Save changes'}</button>}
+          {!ro && !fin && <>
             <button type="button" disabled={busy} onClick={() => save(false)}>{busy ? 'Saving…' : 'Save draft'}</button>
             <button type="button" className="p big" disabled={busy} onClick={() => save(true)}>Finalize bill</button>
           </>}
         </div>
       </div>
-      {!ro && <span className="mut small">A draft never changes stock. Finalizing deducts inventory lenses and locks the bill.</span>}
+      {fin && <span className="mut small">Saving adjusts stock by the difference. If a lens does not have enough stock, nothing is changed.</span>}
+      {!ro && !fin && <span className="mut small">A draft never changes stock. Finalizing deducts inventory lenses; you can still edit the bill afterwards.</span>}
     </div>
 
     {picker && <Picker onPick={pickLens} onClose={() => setPicker(null)} />}

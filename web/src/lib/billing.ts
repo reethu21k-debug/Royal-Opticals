@@ -31,3 +31,10 @@ export function summarizeBills(bills: SummaryBill[]) {
     billed: round2(live.reduce((t, b) => t + Number(b.total_amount ?? 0), 0)), latestBalance: latest ? round2(Number(latest.balance_amount ?? 0)) : 0,
   };
 }
+
+/** Stock change when a bill is edited: new quantity minus old quantity per lens (positive = take more from stock, negative = put back). Zero changes are left out. */
+export function stockDelta(before: Map<string, number>, after: Map<string, number>): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const k of new Set([...before.keys(), ...after.keys()])) { const d = (after.get(k) ?? 0) - (before.get(k) ?? 0); if (d !== 0) m.set(k, d); }
+  return m;
+}

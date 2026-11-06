@@ -22,7 +22,7 @@ export default function Bills() {
   const [items, setItems] = useState<any[] | null>(null); const [err, setErr] = useState('');
   const [q, setQ] = useState(''); const [dq, setDq] = useState(''); const [tab, setTab] = useState('');
   const [month, setMonth] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState('');
-  const [sel, setSel] = useState<Set<string>>(new Set()); const [busy, setBusy] = useState('');
+  const [sel, setSel] = useState<Set<string>>(new Set()); const [busy, setBusy] = useState(''); const [tick, setTick] = useState(0);
   useEffect(() => { const t = setTimeout(() => setDq(q), 250); return () => clearTimeout(t); }, [q]);
 
   const filters = { ...(dq ? { q: dq } : {}), ...(tab ? { status: tab } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}) };
@@ -32,7 +32,7 @@ export default function Bills() {
     api(`/api/bills?${new URLSearchParams(filters)}`).then(r => { if (!alive) return; setItems(r.items); setSel(p => new Set(Array.from(p).filter(id => r.items.some((b: any) => b.id === id)))); }).catch(e => alive && setErr(e.message));
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterKey]);
+  }, [filterKey, tick]);
 
   function pickMonth(m: string) { setMonth(m); if (m) { const [f, t] = monthBounds(m); setFrom(f); setTo(t); } else { setFrom(''); setTo(''); } }
   const toggle = (id: string) => setSel(p => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -43,6 +43,14 @@ export default function Bills() {
   async function get(fmt: 'pdf' | 'xlsx', ids?: string[], key: string = fmt) {
     setBusy(key); setErr('');
     try { await downloadFile(`/api/bills/export?${ids ? `ids=${ids.join(',')}` : new URLSearchParams(filters)}&format=${fmt}`); }
+    catch (e: any) { setErr(e.message); } finally { setBusy(''); }
+  }
+  // Delete the selected bills (managers / administrators). Finalized bills put their inventory lenses back in stock first.
+  async function del() {
+    const ids = Array.from(sel); const fin = (items ?? []).filter(b => sel.has(b.id) && b.status === 'finalized').length;
+    if (!ids.length || !confirm(`Delete ${ids.length} bill${ids.length === 1 ? '' : 's'}?\n\n${fin ? `• ${fin} finalized bill${fin === 1 ? '' : 's'}: their inventory lenses will be put back in stock.\n` : ''}• This cannot be undone. A copy of each deleted bill is kept in the audit log.`)) return;
+    setBusy('del'); setErr('');
+    try { await api('/api/bills/delete', { method: 'POST', body: JSON.stringify({ ids }) }); setSel(new Set()); setTick(x => x + 1); }
     catch (e: any) { setErr(e.message); } finally { setBusy(''); }
   }
   const bulk = (fmt: 'pdf' | 'xlsx') => get(fmt, sel.size > 0 && !allSel ? Array.from(sel) : undefined);
@@ -83,6 +91,7 @@ export default function Bills() {
       <div className={s.dlBtns}>
         <button type="button" disabled={!!busy} onClick={() => bulk('pdf')}><Ico n="download" />{busy === 'pdf' ? 'Preparing…' : 'Download PDF'}</button>
         <button type="button" disabled={!!busy} onClick={() => bulk('xlsx')}><Ico n="download" />{busy === 'xlsx' ? 'Preparing…' : 'Download Excel'}</button>
+        {sel.size > 0 && <button type="button" className="danger" disabled={!!busy} onClick={del}>{busy === 'del' ? 'Deleting…' : `Delete selected (${sel.size})`}</button>}
       </div>
     </div>}
     {items && (items.length === 0

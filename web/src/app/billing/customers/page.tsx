@@ -2,13 +2,35 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api, fmtDate } from '@/components/api';
-import { money, summarizeBills } from '@/lib/billing';
+import { money, normName, summarizeBills } from '@/lib/billing';
 import { PageHeader, Badge, Loading, EmptyState, Ico, type Tone } from '@/components/ui';
 import { downloadFile } from '../download';
 import s from '../billing.module.css';
 
 const STATUS: Record<string, [string, Tone]> = { draft: ['Draft', 'warn'], finalized: ['Finalized', 'ok'], void: ['Void', 'mute'] };
 const LIST_LIMIT = 500;
+
+// Rename every bill of this customer. Re-mounted (key) whenever another customer is chosen.
+function RenameBox({ pick, custs, onDone }: { pick: any; custs: any[]; onDone: (to: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false); const [to, setTo] = useState(pick.name); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  if (!open) return <button type="button" onClick={() => { setTo(pick.name); setOpen(true); }}>Rename customer</button>;
+  const name = to.trim(); const clash = !!name && custs.some(c => c.name !== pick.name && normName(c.name) === normName(name));
+  async function save() {
+    if (!name) { setErr('Enter a name.'); return; }
+    if (name === pick.name) { setOpen(false); return; }
+    if (!confirm(`Rename “${pick.name}” to “${name}” on all ${pick.bill_count} bill${pick.bill_count === 1 ? '' : 's'}?${clash ? '\n\nA customer with this name already exists, so their bills will be merged under one name.' : ''}`)) return;
+    setBusy(true); setErr('');
+    try { await api('/api/bills/customers/rename', { method: 'POST', body: JSON.stringify({ from: pick.name, to: name }) }); await onDone(name); }
+    catch (e: any) { setErr(e.message); setBusy(false); }
+  }
+  return <span style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+    <input aria-label="New customer name" value={to} maxLength={200} autoFocus onChange={e => { setTo(e.target.value); setErr(''); }} onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setOpen(false); }} />
+    <button type="button" className="p" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+    <button type="button" disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
+    {clash && <span className={s.warnTxt}>This name already exists, so these bills will be merged with that customer.</span>}
+    {err && <span className={s.warnTxt} role="alert">{err}</span>}
+  </span>;
+}
 
 export default function CustomerHistory() {
   const [q, setQ] = useState(''); const [dq, setDq] = useState('');
@@ -52,7 +74,13 @@ export default function CustomerHistory() {
         <td className="n"><b>{c.bill_count}</b></td><td className="mut">{fmtDate(c.last_bill_date)}</td><td className="n">{money(c.total_billed)}</td></tr>)}</tbody></table></div>}
 
     {pick && <section aria-label={`Bills for ${pick.name}`} style={{ marginTop: 22 }}>
-      <h2 style={{ margin: '0 0 8px' }}>{pick.name}</h2>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 8px' }}>
+        <h2 style={{ margin: 0 }}>{pick.name}</h2>
+        <RenameBox key={pick.name} pick={pick} custs={custs ?? []} onDone={async to => {
+          const r = await api(`/api/bills/customers?${new URLSearchParams({ q: to })}`);
+          setPick(r.items.find((c: any) => normName(c.name) === normName(to)) ?? null); setQ(to); setDq(to);
+        }} />
+      </div>
       <div className={s.sumStrip} aria-live="polite">
         <span>Total bills<b>{pick.bill_count}</b></span><span>Finalized<b>{pick.finalized}</b></span><span>Drafts<b>{pick.draft}</b></span><span>Void<b>{pick.void}</b></span>
         <span>Billed (excl. void)<b>{money(pick.total_billed)}</b></span>{sm && <span title="Taken from the latest non-void bill; it already includes the old balance">Balance on latest bill<b>{money(sm.latestBalance)}</b></span>}

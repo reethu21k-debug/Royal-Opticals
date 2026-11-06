@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deductions, balanceOf, lineAmount, fmtPower, normName, summarizeBills } from '../../src/lib/billing.ts';
+import { deductions, balanceOf, lineAmount, fmtPower, normName, summarizeBills, stockDelta } from '../../src/lib/billing.ts';
 
 test('only inventory lines are deducted; external never', () => {
   const m = deductions([
@@ -28,4 +28,9 @@ test('customer summary: void bills counted but not billed; balance from latest n
   ]);
   assert.deepEqual(r, { total: 3, finalized: 1, draft: 1, void: 1, billed: 600.5, latestBalance: 530.5 });
   assert.deepEqual(summarizeBills([]), { total: 0, finalized: 0, draft: 0, void: 0, billed: 0, latestBalance: 0 });
+});
+test('editing a finalized bill: stock moves only by the difference', () => {
+  const before = new Map([['a', 2], ['b', 1], ['c', 3]]); const after = new Map([['a', 3], ['c', 3], ['d', 1]]);
+  assert.deepEqual(Array.from(stockDelta(before, after)).sort(), [['a', 1], ['b', -1], ['d', 1]]);
+  assert.equal(stockDelta(new Map(), new Map([['x', 2]])).get('x'), 2);   // a draft: everything is "new"
 });
