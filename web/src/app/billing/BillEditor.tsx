@@ -42,6 +42,7 @@ function Picker({ onPick, onClose }: { onPick: (x: any) => void; onClose: () => 
   const [err, setErr] = useState(''); const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const [hi, setHi] = useState(0);
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc');   // order of the search results
   useEffect(() => { ref.current?.focus(); const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);
   useEffect(() => {
     let alive = true;
@@ -49,11 +50,12 @@ function Picker({ onPick, onClose }: { onPick: (x: any) => void; onClose: () => 
       const p = new URLSearchParams();
       if (f.q.trim()) p.set('q', f.q.trim());
       for (const k of ['sph', 'cyl', 'add'] as const) if (f[k].trim() !== '' && Number.isFinite(Number(f[k]))) p.set(k, String(Number(f[k])));
+      if (dir === 'desc') p.set('dir', 'desc');
       setLoading(true); setErr('');
       api(`/api/billing/lenses?${p}`).then(d => alive && setData(d)).catch(e => alive && setErr(e.message)).finally(() => alive && setLoading(false));
     }, 250);
     return () => { alive = false; clearTimeout(t); };
-  }, [f]);
+  }, [f, dir]);
   const isOk = (x: any) => x.available_quantity !== null && Number(x.available_quantity) > 0 && x.available_state === 'recorded';
   const okIdx = (data?.items ?? []).map((x, i) => (isOk(x) ? i : -1)).filter(i => i >= 0);
   useEffect(() => { setHi(0); }, [data]);
@@ -75,7 +77,16 @@ function Picker({ onPick, onClose }: { onPick: (x: any) => void; onClose: () => 
           <input inputMode="decimal" aria-label="CYL" placeholder="CYL" value={f.cyl} onChange={set('cyl')} onBlur={tidyPower('cyl')} />
           <input inputMode="decimal" aria-label="ADD" placeholder="ADD" value={f.add} onChange={set('add')} onBlur={tidyPower('add')} />
         </div>
-        <p className={s.keys}>Type to search · ↑ ↓ to move · Enter to pick · Esc to close</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, margin: '0 0 8px' }}>
+          <p className={s.keys} style={{ margin: 0 }}>Type to search · ↑ ↓ to move · Enter to pick · Esc to close</p>
+          <button type="button" className="sm" onClick={() => { setDir(dir === 'asc' ? 'desc' : 'asc'); ref.current?.focus(); }}
+            title={dir === 'asc' ? 'Ascending order. Click to show results in descending order.' : 'Descending order. Click to show results in ascending order.'}
+            aria-label={`Sort order: ${dir === 'asc' ? 'ascending' : 'descending'}. Activate to switch to ${dir === 'asc' ? 'descending' : 'ascending'}.`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', transition: 'transform .18s', transform: dir === 'desc' ? 'rotate(180deg)' : 'none' }}><path d="M12 19V5m0 0-5 5m5-5 5 5" /></svg>
+            {dir === 'asc' ? 'Ascending' : 'Descending'}
+          </button>
+        </div>
         {err && <div className="err" role="alert">{err}</div>}
         {data?.needFilter && <p className="mut small">Type part of the lens name, or enter a SPH / CYL / ADD value, to search the inventory.</p>}
         {data && !data.needFilter && data.items.length === 0 && !loading && (

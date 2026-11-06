@@ -44,6 +44,7 @@ export const BillAction = z.discriminatedUnion('action', [
 export const BillLensQuery = z.object({
   q: z.string().trim().max(100).optional(),
   sph: z.coerce.number().min(-60).max(60).optional(), cyl: z.coerce.number().min(-60).max(60).optional(), add: z.coerce.number().min(-60).max(60).optional(),
+  dir: z.enum(['asc', 'desc']).optional(),   // result order: asc (default) or desc
 });
 export const BillRename = z.object({ customerName: z.string().trim().max(200) });
 export const CustomerRename = z.object({ from: z.string().trim().min(1).max(200), to: z.string().trim().min(1).max(200) });
