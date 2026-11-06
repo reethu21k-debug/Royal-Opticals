@@ -123,15 +123,21 @@ const BILL_LOGO_H = 62, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
 // Neutral palette for the bill (print-friendly, no accent colours).
 const INK = '#1f2937', MUTED = '#6b7280', GRID = '#8b93a1', HEADFILL = '#f1f3f6', SOFTLINE = '#d1d5db';
 
-// Full lens name for the bill: every level of the catalog path (family › product › folders › workbook › sheet › block), file extensions removed
-// and repeated names collapsed. The power values are NOT part of the name - they print in the SPH / CYL / AXIS / ADD columns.
+// Lens name for the bill = main lens name + the deepest (leaf) folder name, separated by one space. Parent / intermediate folders are left out.
+// Inventory path from node_path(): family / MAIN LENS / folder / ... / leaf. (Fallback when the path is missing: saved lens_type "main \u203A leaf".)
+// File extensions are removed; if the leaf is the same text as the main name it is shown once; with no deeper folder only the main name is shown.
+// The power values are NOT part of the name - they print in the SPH / CYL / AXIS / ADD columns.
 const FILE_EXT = /\.(xlsx|xlsm|xls|csv|pdf)\b/gi;
 const tidyPart = (v: unknown) => String(v ?? '').replace(FILE_EXT, '').replace(/\s+/g, ' ').trim();
 function pdfLensName(i: Row): string {
-  const raw = i.source === 'inventory' && i._path ? String(i._path).split(' / ') : String(i.lens_type ?? '').split('\u203A');
-  const out: string[] = [];
-  for (const part of raw.map(tidyPart)) if (part && part.toLowerCase() !== out[out.length - 1]?.toLowerCase()) out.push(part);
-  return out.join(' \u203A ') || (i.source === 'inventory' ? 'Inventory lens' : 'External order');
+  if (i.source !== 'inventory') return tidyPart(String(i.lens_type ?? '').split('\u203A')[0]) || 'External order';
+  const hasPath = !!i._path;
+  const parts = (hasPath ? String(i._path).split(' / ') : String(i.lens_type ?? '').split('\u203A')).map(tidyPart).filter(Boolean);
+  const mainIdx = hasPath && parts.length > 1 ? 1 : 0;   // the level after the family is the main lens
+  const main = parts[mainIdx];
+  if (!main) return 'Inventory lens';
+  const leaf = parts.length - 1 > mainIdx ? parts[parts.length - 1] : '';
+  return leaf && leaf.toLowerCase() !== main.toLowerCase() ? `${main} ${leaf}` : main;
 }
 // Right and left eye of one billing line share one PDF row.
 type PdfLine = { no: number; R?: Row; L?: Row };
