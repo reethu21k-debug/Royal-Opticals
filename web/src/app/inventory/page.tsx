@@ -27,8 +27,9 @@ function Inner() {
   const [active, setActive] = useState('active');
   const [r, setR] = useState<Record<string, string>>({});
   const [moreOpen, setMoreOpen] = useState(false);
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc');   // list order; ascending = the existing default order
 
-  const { data, err, loading, qs } = useList('/api/inventory', { nodeId: node, q: dq, status, active, page, pageSize: 50, ...r });
+  const { data, err, loading, qs } = useList('/api/inventory', { nodeId: node, q: dq, status, active, page, pageSize: 50, dir: dir === 'desc' ? 'desc' : '', ...r });
 
   // bulk target
   const [bt, setBt] = useState('');
@@ -99,6 +100,13 @@ function Inner() {
           {/* ───── search & quick status filter ───── */}
           <div className="toolbar" style={{ marginBottom: 10 }}>
             <input type="search" className="search grow" aria-label="Search" placeholder="Search by power, label or workbook…" value={q} onChange={e => setQ(e.target.value)} />
+            <button type="button" onClick={() => { setDir(dir === 'asc' ? 'desc' : 'asc'); setPage(1); }}
+              title={dir === 'asc' ? 'Ascending order. Click to show the list in descending order.' : 'Descending order. Click to show the list in ascending order.'}
+              aria-label={`Sort order: ${dir === 'asc' ? 'ascending' : 'descending'}. Activate to switch to ${dir === 'asc' ? 'descending' : 'ascending'}.`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap' }}>
+              <svg className="ic" viewBox="0 0 24 24" aria-hidden="true" style={{ width: 16, height: 16, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', transition: 'transform .18s', transform: dir === 'desc' ? 'rotate(180deg)' : 'none' }}><path d="M12 19V5m0 0-5 5m5-5 5 5" /></svg>
+              {dir === 'asc' ? 'Ascending' : 'Descending'}
+            </button>
           </div>
           <div className="pills" role="group" aria-label="Stock status" style={{ marginBottom: 12 }}>
             <button type="button" aria-pressed={status === ''} onClick={() => { setStatus(''); setPage(1); }}>All</button>

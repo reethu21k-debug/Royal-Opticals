@@ -117,7 +117,7 @@ function shopLogo(): string | null {
 }
 
 // Bill header details (printed under the centred logo on every bill PDF).
-const SHOP_ADDRESS = ['Police Complex, Shop No. 09, Near Syndicate Bank, Arts College Road,', 'Clock Tower, Anantapur \u2013 515001, Andhra Pradesh'];
+const SHOP_ADDRESS = ['Shop No. 13/294, Police Welfare Complex, Arts College Road,', 'Anantapur \u2013 515001, Andhra Pradesh, India'];
 const SHOP_EMAIL = 'contact@royalopticalsatp.com';
 const BILL_LOGO_H = 62, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
 // Neutral palette for the bill (print-friendly, no accent colours).
@@ -144,6 +144,9 @@ function pdfLines(its: Row[]): PdfLine[] {
   for (const i of its) { const l: PdfLine = m.get(i.line_no) ?? { no: i.line_no }; if (i.side === 'L') l.L = i; else l.R = i; m.set(i.line_no, l); }
   return Array.from(m.values()).sort((a, c) => a.no - c.no);
 }
+
+// Bill date as DD-MM-YYYY (bill_date arrives as the text 'YYYY-MM-DD', so it is re-ordered without any timezone conversion).
+const dmy = (d: unknown) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d ?? '')); return m ? `${m[3]}-${m[2]}-${m[1]}` : String(d ?? ''); };
 
 export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
   const doc = new PDFDocument({ size: 'A4', margin: 40, autoFirstPage: false, info: { Title: bills.length === 1 ? `Bill ${bills[0].bill_number}` : `Bills (${bills.length})` } });
@@ -175,7 +178,7 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
     doc.moveTo(40, hy + 8).lineTo(555, hy + 8).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); hy += 22;
     // Bill details: customer on the left, bill number / date / status on the right.
     doc.fillColor(INK).font('Helvetica-Bold').fontSize(14).text(`Bill ${safe(b.bill_number)}`, 300, hy, { width: 255, align: 'right', lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`${STATUS[b.status] ?? b.status}   \u00B7   ${b.bill_date ?? ''}`, 300, hy + 19, { width: 255, align: 'right', lineBreak: false });
+    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`Date: ${dmy(b.bill_date)}`, 300, hy + 19, { width: 255, align: 'right', lineBreak: false });
     doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text('BILLED TO', 40, hy, { width: 250, lineBreak: false, characterSpacing: 0.8 });
     doc.fillColor(INK).font('Helvetica-Bold').fontSize(12).text(safe(b.customer_name) || '\u2014', 40, hy + 12, { width: 250 });
     let my = Math.max(doc.y, hy + 34);

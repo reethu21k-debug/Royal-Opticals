@@ -38,7 +38,8 @@ export function buildInventoryQuery(raw: z.infer<typeof InventoryQuery>, opts: {
       i.target_quantity, i.target_state, i.available_quantity, i.available_state, i.suggested_order, i.legacy_suggested_order_blank_as_zero,
       i.stock_status, i.is_active, i.on_order_quantity, i.net_suggested_order, wn.source_name as workbook, bn.source_name as block,
       lv.ord as s1`;
-  const order = 'order by s1, variant_id';
+  const dir = raw.dir === 'desc' ? 'desc' : 'asc';   // only the direction changes; the sort keys (catalogue order, then variant id) stay the same
+  const order = `order by s1 ${dir}, variant_id ${dir}`;
   const lim = opts.paged ? ` limit ${size} offset ${offset}` : ' limit 50000';
   const outerCols = `p.variant_id, p.block_node_id, p.row_axis_name, p.col_axis_name, p.row_label_source, p.col_label_source, p.row_occurrence,
       p.target_quantity, p.target_state, p.available_quantity, p.available_state, p.suggested_order, p.legacy_suggested_order_blank_as_zero,
@@ -50,9 +51,9 @@ export function buildInventoryQuery(raw: z.infer<typeof InventoryQuery>, opts: {
   let listSql: string;
   if (selective) {
     const prefix = cte ? cte.trim() + ', ' : 'with ';
-    listSql = `${prefix}m as materialized (${inner} ${from}) select ${outerCols} from (select * from m ${order}${lim}) p order by p.s1, p.variant_id`;
+    listSql = `${prefix}m as materialized (${inner} ${from}) select ${outerCols} from (select * from m ${order}${lim}) p order by p.s1 ${dir}, p.variant_id ${dir}`;
   } else {
-    listSql = `select ${outerCols} from (${inner} ${from} ${order}${lim}) p order by p.s1, p.variant_id`;
+    listSql = `select ${outerCols} from (${inner} ${from} ${order}${lim}) p order by p.s1 ${dir}, p.variant_id ${dir}`;
   }
   const countSql = `${cte}select count(*)::int as n ${from}`;
   return { listSql, countSql, params, page, size };
