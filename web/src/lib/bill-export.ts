@@ -116,6 +116,13 @@ function shopLogo(): string | null {
   return logoPath;
 }
 
+// Bill header details (printed under the centred logo on every bill PDF).
+const SHOP_ADDRESS = ['Police Complex, Shop No. 09, Near Syndicate Bank, Arts College Road,', 'Clock Tower, Anantapur \u2013 515001, Andhra Pradesh'];
+const SHOP_EMAIL = 'contact@royalopticalsatp.com';
+const BILL_LOGO_H = 62, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
+// Neutral palette for the bill (print-friendly, no accent colours).
+const INK = '#1f2937', MUTED = '#6b7280', GRID = '#8b93a1', HEADFILL = '#f1f3f6', SOFTLINE = '#d1d5db';
+
 // Short, customer-friendly lens name: the product level of the catalog path (family / PRODUCT / folders… / workbook.xlsx / sheet / block), never a file name.
 const FILE_EXT = /\.(xlsx|xlsm|xls|csv|pdf)\b/gi;
 const tidyName = (v: unknown) => String(v ?? '').split('›')[0].replace(FILE_EXT, '').replace(/\s+/g, ' ').trim();
@@ -141,9 +148,9 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
 
   const HH = 15;   // height of each of the two header rows
   const tableHead = () => {
-    const y = doc.y; doc.rect(40, y, 515, HH * 2).fill('#eef0f7'); doc.lineWidth(0.6).strokeColor(BLUE);
+    const y = doc.y; doc.rect(40, y, 515, HH * 2).fill(HEADFILL); doc.lineWidth(0.6).strokeColor(GRID);
     const lab = (t: string, x: number, yy: number, w: number, h: number) => {
-      doc.rect(x, yy, w, h).stroke(); doc.fillColor(BLUE).font('Helvetica-Bold').fontSize(8).text(t, x, yy + (h - 8) / 2 + 1, { width: w, align: 'center', lineBreak: false });
+      doc.rect(x, yy, w, h).stroke(); doc.fillColor(INK).font('Helvetica-Bold').fontSize(8).text(t, x, yy + (h - 8) / 2 + 1, { width: w, align: 'center', lineBreak: false });
     };
     ([[0, 'No.'], [1, 'Qty.'], [2, 'Lens Type'], [9, 'ADD'], [10, 'Rate'], [11, 'Amount']] as [number, string][]).forEach(([k, t]) => lab(t, X[k], y, W[k], HH * 2));
     lab('RIGHT EYE', X[3], y, W[3] + W[4] + W[5], HH); lab('LEFT EYE', X[6], y, W[6] + W[7] + W[8], HH);
@@ -154,13 +161,22 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
   for (const b of bills) {
     const its = items.get(b.id) ?? [];
     doc.addPage();
-    if (logo) doc.image(logo, 40, 30, { fit: [LOGO_W, LOGO_H] });
-    else doc.fillColor('#000').font('Helvetica-Bold').fontSize(17).text(SHOP, 40, 40, { lineBreak: false });
-    doc.fillColor('#000').font('Helvetica-Bold').fontSize(14).text(`Bill ${safe(b.bill_number)}`, 300, 40, { width: 255, align: 'right', lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor('#555').text(`${STATUS[b.status] ?? b.status}   ·   ${b.bill_date ?? ''}`, 300, 60, { width: 255, align: 'right', lineBreak: false });
-    doc.fillColor('#000').fontSize(11).text(`Customer: ${safe(b.customer_name) || '—'}`, 40, 88, { width: 515 });
-    if (b.status === 'void') doc.fillColor('#b42318').fontSize(9).text(`VOID${b.void_reason ? ': ' + safe(b.void_reason) : ''}`, 40, doc.y + 2, { width: 515 }).fillColor('#000');
-    doc.moveTo(40, doc.y + 8).lineTo(555, doc.y + 8).strokeColor('#999').lineWidth(0.7).stroke(); doc.x = 40; doc.y += 18;
+    // Centred logo, then business address and email, then a hairline rule.
+    let hy = 34;
+    if (logo) { doc.image(logo, (595 - BILL_LOGO_W) / 2, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] }); hy += BILL_LOGO_H + 10; }
+    else { doc.fillColor(INK).font('Helvetica-Bold').fontSize(20).text(SHOP, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 30; }
+    doc.font('Helvetica').fontSize(9).fillColor(MUTED);
+    for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12; }
+    doc.fillColor(INK).text(SHOP_EMAIL, 40, hy + 1, { width: 515, align: 'center', lineBreak: false }); hy += 15;
+    doc.moveTo(40, hy + 8).lineTo(555, hy + 8).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); hy += 22;
+    // Bill details: customer on the left, bill number / date / status on the right.
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(14).text(`Bill ${safe(b.bill_number)}`, 300, hy, { width: 255, align: 'right', lineBreak: false });
+    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`${STATUS[b.status] ?? b.status}   \u00B7   ${b.bill_date ?? ''}`, 300, hy + 19, { width: 255, align: 'right', lineBreak: false });
+    doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text('BILLED TO', 40, hy, { width: 250, lineBreak: false, characterSpacing: 0.8 });
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(12).text(safe(b.customer_name) || '\u2014', 40, hy + 12, { width: 250 });
+    let my = Math.max(doc.y, hy + 34);
+    if (b.status === 'void') { doc.fillColor('#b42318').font('Helvetica').fontSize(9).text(`VOID${b.void_reason ? ': ' + safe(b.void_reason) : ''}`, 40, my + 2, { width: 515 }); my = doc.y; }
+    doc.fillColor('#000'); doc.x = 40; doc.y = my + 14;
     tableHead();
 
     for (const l of pdfLines(its)) {
@@ -178,7 +194,7 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
       const lensTxt = names.map(safe).join('\n');
       const h = Math.max(20, doc.heightOfString(lensTxt, { width: W[2] - 6 }) + 8, Math.max(rates.length, adds.length) * 10 + 8);
       if (doc.y + h > 760) { doc.addPage(); tableHead(); }
-      const y = doc.y; doc.lineWidth(0.6).strokeColor(BLUE); W.forEach((w, k) => doc.rect(X[k], y, w, h).stroke());
+      const y = doc.y; doc.lineWidth(0.6).strokeColor(GRID); W.forEach((w, k) => doc.rect(X[k], y, w, h).stroke());
       const put = (k: number, v: string, align: 'left' | 'center' | 'right' = 'center', size = 8.5, wrap = false) => {
         if (v === '') return;
         doc.fillColor('#000').font('Helvetica').fontSize(size);
@@ -203,8 +219,9 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
       doc.x = 40; doc.y = y + (bold ? 17 : 14);
     };
     kv('Total', b.total_amount, true); kv('Old balance (O.B.)', b.old_balance); kv('Return', b.return_amount); kv('Advance', b.advance_amount);
-    doc.moveTo(340, doc.y).lineTo(555, doc.y).strokeColor('#999').lineWidth(0.7).stroke(); doc.y += 5; kv('Balance amount', b.balance_amount, true);
-    if (b.notes) doc.font('Helvetica').fontSize(9).fillColor('#444').text(`Notes: ${safe(b.notes)}`, 40, doc.y + 10, { width: 300 }).fillColor('#000');
+    doc.moveTo(340, doc.y).lineTo(555, doc.y).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); doc.y += 8;
+    doc.rect(340, doc.y - 5, 215, 24).fill(HEADFILL); kv('Balance amount', b.balance_amount, true);
+    if (b.notes) doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`Notes: ${safe(b.notes)}`, 40, doc.y + 10, { width: 300 }).fillColor('#000');
   }
   doc.end(); await done; return Buffer.concat(chunks);
 }
