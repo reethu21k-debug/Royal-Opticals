@@ -114,12 +114,13 @@ function build(items: GLine[]): Blk[] {
   return blocks;
 }
 
-export default function CountGrid({ items, open, rowState, onSave, onBulk, onNotice, canSetTargets = false, targetRowState = {}, onSaveTarget, onBulkTargets, only }: {
+export default function CountGrid({ items, open, rowState, onSave, onBulk, onNotice, canSetTargets = false, targetRowState = {}, onSaveTarget, onBulkTargets, only, additive = false }: {
   items: GLine[]; open: boolean; rowState: Record<string, RowState>;
   onSave: (l: GLine, raw: string) => void; onBulk: (changes: Change[]) => void; onNotice: (message: string) => void;
   canSetTargets?: boolean; targetRowState?: Record<string, RowState>;
   onSaveTarget?: (l: GLine, raw: string) => void; onBulkTargets?: (changes: Change[]) => void;
   only?: 'targets';   // 'targets' = the separate Targets tab: only the targets grid, full width
+  additive?: boolean; // true = the "Add to stock" tab: a typed number is ADDED to the system stock (sys 17 + 5 = 22). false = the normal Grid (typed number replaces).
 }) {
   const blocks = useMemo(() => build(items), [items]);
   const [enter, setEnter] = useState<'right' | 'down'>('right');
@@ -167,7 +168,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
   }
 
   /* ── paste a block of numbers (from Excel / a list) ── */
-  function onPaste(e: React.ClipboardEvent<HTMLInputElement>, blk: Blk, ri: number, ci: number, commit: (changes: Change[]) => void = onBulk) {
+  function onPaste(e: React.ClipboardEvent<HTMLInputElement>, blk: Blk, ri: number, ci: number, commit: (changes: Change[]) => void = onBulk, add = false) {
     const text = e.clipboardData.getData('text');
     if (!/[\t\n\r]/.test(text.trim())) return;   // a single value pastes normally
     e.preventDefault();
@@ -179,7 +180,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
       if (!target) { outside++; return; }
       const v = Number(t);
       if (!Number.isInteger(v) || v < 0 || v > MAX) { bad++; return; }
-      changes.push({ l: target, value: v });
+      changes.push({ l: target, value: add ? systemBase(target) + v : v });
     }));
     if (changes.length) commit(changes);
     if (bad || outside) onNotice(`${changes.length ? `Pasted ${changes.length}. ` : ''}${bad ? `${bad} value${bad === 1 ? ' was' : 's were'} not a whole number. ` : ''}${outside ? `${outside} fell outside the grid.` : ''}`.trim());
@@ -236,6 +237,15 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
     if (ls.length && confirm(`Clear ${ls.length} counted line${ls.length === 1 ? '' : 's'} in this block? They go back to “not counted”.`)) onBulk(ls.map(l => ({ l, value: null })));
   };
 
+  // Counting is ADDITIVE: what is typed in a count cell is added to the system stock shown under it (sys 17 + typed 5 = 22).
+  // The saved count is the final total, so differences, approval and stock updates keep working exactly as before.
+  const systemBase = (l: GLine) => (l.recorded_state === 'missing' || l.recorded_quantity === null ? 0 : l.recorded_quantity);
+  const addToSystem = (l: GLine, raw: string) => {
+    const text = raw.trim(); const n = Number(text);
+    if (text === '' || !Number.isInteger(n) || n < 0) return raw;   // blank clears; invalid input still shows the normal error
+    return String(systemBase(l) + n);
+  };
+
   const sysText = (l: GLine) => l.recorded_quantity === null || l.recorded_state === 'missing' ? '—' : l.recorded_state === 'unverified' ? `${l.recorded_quantity}?` : String(l.recorded_quantity);
 
   const cellInfo = (l: GLine) => {
@@ -251,7 +261,8 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
         ? <input data-grid data-b={bi} data-r={ri} data-c={ci} data-empty={x.c === null ? '1' : '0'} aria-label={`Counted quantity for ${label}`} aria-invalid={!!x.err}
             inputMode="numeric" pattern="[0-9]*" placeholder="–" autoComplete="off"
             defaultValue={x.c ?? ''} key={`${l.variant_id}-${x.c}`}
-            onFocus={e => e.target.select()} onBlur={e => onSave(l, e.target.value)} onKeyDown={onKey} onPaste={e => onPaste(e, blk, ri, ci)} />
+            onFocus={e => e.target.select()} onInput={e => { e.currentTarget.dataset.dirty = '1'; }}
+            onBlur={e => onSave(l, additive && e.target.dataset.dirty === '1' ? addToSystem(l, e.target.value) : e.target.value)} onKeyDown={onKey} onPaste={e => onPaste(e, blk, ri, ci, onBulk, additive)} />
         : <span className={css.ro}>{x.c ?? '—'}</span>}
       {x.canUseSystem
         ? <button type="button" className={css.sysBtn} tabIndex={-1} title="Click to count the same as system stock" onClick={() => onSave(l, String(x.rec))}>sys {sysText(l)}</button>
@@ -273,7 +284,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
             defaultValue={x.t ?? ''} key={`t-${l.variant_id}-${x.t}`}
             onFocus={e => e.target.select()}
             onBlur={e => { const v = e.target.value.trim(); if (v === '') { e.target.value = x.t === null ? '' : String(x.t); return; } onSaveTarget?.(l, v); }}
-            onKeyDown={onTKey} onPaste={e => onPaste(e, blk, ri, ci, onBulkTargets ?? onBulk)} />
+            onKeyDown={onTKey} onPaste={e => onPaste(e, blk, ri, ci, onBulkTargets ?? onBulk, false)} />
         : <span className={css.ro}>{x.t ?? '—'}</span>}
       <span className={css.sys}>{x.err ? x.err : `stock ${sysText(l)}`}</span>
     </>);
@@ -300,7 +311,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
           </div></div>}
         <span className={css.label}>{targetsOnly
           ? (canSetTargets ? 'Tip: copy numbers from Excel and paste them into the first cell. Targets never change stock.' : 'You can see the targets here, but only managers can change them.')
-          : open ? 'Tip: copy numbers from Excel and paste them into the first cell.' : 'Counting is closed, so numbers are read-only.'}</span>
+          : open ? (additive ? 'Add to stock: the number you type is ADDED to the system stock under the cell (sys 17 + 5 = 22).' : 'Tip: copy numbers from Excel and paste them into the first cell.') : 'Counting is closed, so numbers are read-only.'}</span>
       </div>
       <div className={css.legend} aria-label="Colour key">
         {targetsOnly
