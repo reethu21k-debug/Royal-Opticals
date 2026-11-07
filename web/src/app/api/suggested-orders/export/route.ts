@@ -87,7 +87,7 @@ export const GET = route(async (req, actor) => {
         }
         if (qty.size === 0) continue;
         blocks.push({
-          title: n.title, path: n.path, rowAxis: vs[0]?.row_axis_name ?? '', colAxis: vs[0]?.col_axis_name ?? '',
+          title: n.title, rowAxis: vs[0]?.row_axis_name ?? '', colAxis: vs[0]?.col_axis_name ?? '',
           rows: [...rowMap.values()].sort((x, y) => x.o - y.o || x.occ - y.occ), cols: [...colMap.values()].sort((x, y) => x.o - y.o), qty,
         });
       }

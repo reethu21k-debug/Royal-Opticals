@@ -7,7 +7,6 @@ import PDFDocument from 'pdfkit';
 
 export type GridBlock = {
   title: string;                 // block name (e.g. "CR HC SV -6-2")
-  path: string;                  // full hierarchy path, printed small under the title so identical block names stay distinguishable
   rowAxis: string;               // e.g. "(-) SPH"
   colAxis: string;               // e.g. "(-) CYL" — empty for single-column ("list") blocks
   rows: { key: string; label: string }[];
@@ -80,8 +79,9 @@ export async function renderOrderGridPdf(blocks: GridBlock[], meta: Meta): Promi
         const sub = [nChunks > 1 ? `columns ${ci * perChunk + 1}-${ci * perChunk + chunk.length} of ${cols.length}` : '', !first ? 'continued' : ''].filter(Boolean).join(', ');
         doc.font('Helvetica-Bold').fontSize(17).fillColor('#000').text(clean(b.title), MARGIN, y, { width: usableW, align: 'center', underline: true, lineBreak: false, ellipsis: true });
         y += 24;
-        doc.font('Helvetica').fontSize(7.5).fillColor('#666').text(clean(b.path) + (sub ? `   (${sub})` : ''), MARGIN, y, { width: usableW, align: 'center', lineBreak: false, ellipsis: true });
-        doc.fillColor('#000'); y += 16;
+        // Only print a small note when the grid is split across pages/columns; the hierarchy path is no longer printed.
+        if (sub) doc.font('Helvetica').fontSize(7.5).fillColor('#666').text(`(${sub})`, MARGIN, y, { width: usableW, align: 'center', lineBreak: false, ellipsis: true });
+        doc.fillColor('#000'); y += sub ? 16 : 10;
 
         const top = y;
         const avail = pageH - MARGIN - 34 - top - HEAD_H * 2;          // leave room for the totals line + page footer
