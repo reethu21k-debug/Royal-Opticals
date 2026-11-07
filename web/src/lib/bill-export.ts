@@ -101,7 +101,7 @@ export async function billsXlsx({ bills, items }: Loaded): Promise<Buffer> {
 // The built-in PDF font (Helvetica) only covers Latin text; anything else (e.g. Telugu) prints as "?". Use the Excel file for such names.
 const safe = (s: unknown) => String(s ?? '').replace(/\u2212/g, '-').replace(/[^\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026\u203A]/g, '?');
 // Column layout (sums to the 515pt printable width): No. | Qty. | Lens Type | RIGHT: SPH CYL AXIS | LEFT: SPH CYL AXIS | ADD | Rate | Amount
-const W = [24, 28, 145, 33, 33, 29, 33, 33, 29, 32, 47, 49];
+const W = [22, 26, 156, 32, 32, 28, 32, 32, 28, 31, 46, 50];
 const X = W.map((_, k) => 40 + W.slice(0, k).reduce((a, c) => a + c, 0));
 const BLUE = '#1f5fa8';
 
@@ -119,10 +119,11 @@ function shopLogo(): string | null {
 // Bill header details (printed under the centred logo on every bill PDF).
 const SHOP_ADDRESS = ['Shop No. 13/294, Police Welfare Complex, Arts College Road,', 'Anantapur \u2013 515001, Andhra Pradesh, India'];
 const SHOP_EMAIL = 'contact@royalopticalsatp.com';
-const BILL_LOGO_H = 62, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
+const BILL_LOGO_H = 48, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
 // Neutral palette for the bill (print-friendly, no accent colours).
-const INK = '#1f2937', MUTED = '#6b7280', GRID = '#9ca3af', HEADFILL = '#eceff3', SOFTLINE = '#d1d5db';
-const DATA = '#111827', LABEL = '#4b5563', AMTHEAD = '#e2e6ec', AMTFILL = '#f6f7f9', BALFILL = '#e9ecf0';
+const INK = '#1f2937', MUTED = '#6b7280', SOFTLINE = '#e5e7eb', NAVY = '#1b2a49', DATA = '#1f2937', LABEL = '#6b7280';
+const HEADFILL = '#f5f6f8', GROUPFILL = '#e9ecf1', AMTHEAD = '#e9ecf1', AMTFILL = '#f8f9fb', BALFILL = '#eceff3';
+const GRIDL = '#e2e5ea', BOUND = '#c4cad3', OUTER = '#b4bbc6';   // inner grid / eye-group boundaries / table frame
 
 // Lens name for the bill = ONLY the deepest (leaf) folder name of the lens's category path; no main lens name, no parent / intermediate folders.
 // Inventory path from node_path(): family / MAIN LENS / folder / ... / leaf. If there is no folder below the main lens, the main lens name is shown instead.
@@ -154,45 +155,56 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
   const chunks: Buffer[] = []; doc.on('data', (b: Buffer) => chunks.push(b)); const done = new Promise<void>(res => doc.on('end', () => res()));
   const logo = shopLogo();
 
-  const HH = 16;   // height of each of the two header rows
-  const PAD = 6;   // inner padding for left / right aligned cells
-  doc.font('Helvetica').fontSize(8.5);
+  const HH = 17;   // height of each of the two header rows
+  const PAD = 7, RPAD = 5;   // inner padding for left / right aligned cells
+  doc.font('Helvetica').fontSize(9);
   const NUMW = doc.widthOfString('-00.00');   // power values are right-aligned inside a box of this width, centred in the column, so the decimal points line up
+  const vline = (x: number, y1: number, y2: number, color: string, w = 0.4) => { doc.lineWidth(w).strokeColor(color).moveTo(x, y1).lineTo(x, y2).stroke(); };
+  const hline = (y: number, color: string, w = 0.4, x1 = 40, x2 = 555) => { doc.lineWidth(w).strokeColor(color).moveTo(x1, y).lineTo(x2, y).stroke(); };
+  const INNER = [1, 2, 4, 5, 7, 8, 10, 11], EDGES = [3, 6, 9];   // light dividers / stronger dividers at the start of RIGHT EYE, LEFT EYE and ADD
   const tableHead = () => {
-    const y = doc.y; doc.rect(40, y, 515, HH * 2).fill(HEADFILL); doc.rect(X[11], y, W[11], HH * 2).fill(AMTHEAD); doc.lineWidth(0.5).strokeColor(GRID);
+    const y = doc.y, hb = y + HH * 2;
+    doc.rect(40, y, 515, HH * 2).fill(HEADFILL);
+    doc.rect(X[3], y, W[3] + W[4] + W[5], HH).fill(GROUPFILL); doc.rect(X[6], y, W[6] + W[7] + W[8], HH).fill(GROUPFILL); doc.rect(X[11], y, W[11], HH * 2).fill(AMTHEAD);
+    [1, 2, 10, 11].forEach(k => vline(X[k], y, hb, GRIDL)); [4, 5, 7, 8].forEach(k => vline(X[k], y + HH, hb, GRIDL));
+    hline(y + HH, GRIDL, 0.4, X[3], X[9]);
+    EDGES.forEach(k => vline(X[k], y, hb, BOUND, 0.5)); hline(hb, BOUND, 0.6); hline(y, OUTER, 0.6); vline(40, y, hb, OUTER, 0.6); vline(555, y, hb, OUTER, 0.6);
     const lab = (t: string, x: number, yy: number, w: number, h: number) => {
-      doc.rect(x, yy, w, h).stroke(); doc.fillColor(DATA).font('Helvetica-Bold').fontSize(8).text(t, x, yy + (h - 8) / 2 + 1, { width: w, align: 'center', lineBreak: false });
+      doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(8).text(t, x, yy + (h - 8) / 2 + 1, { width: w, align: 'center', lineBreak: false });
     };
     ([[0, 'No.'], [1, 'Qty.'], [2, 'Lens Type'], [9, 'ADD'], [10, 'Rate'], [11, 'Amount']] as [number, string][]).forEach(([k, t]) => lab(t, X[k], y, W[k], HH * 2));
     lab('RIGHT EYE', X[3], y, W[3] + W[4] + W[5], HH); lab('LEFT EYE', X[6], y, W[6] + W[7] + W[8], HH);
     ['SPH', 'CYL', 'AXIS', 'SPH', 'CYL', 'AXIS'].forEach((t, n) => lab(t, X[3 + n], y + HH, W[3 + n], HH));
-    doc.fillColor('#000').font('Helvetica'); doc.x = 40; doc.y = y + HH * 2;
+    doc.fillColor('#000').font('Helvetica'); doc.x = 40; doc.y = hb;
   };
 
   for (const b of bills) {
     const its = items.get(b.id) ?? [];
     doc.addPage();
-    // Centred logo, then business address and email, then a hairline rule.
-    let hy = 34;
-    if (logo) { doc.image(logo, (595 - BILL_LOGO_W) / 2, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] }); hy += BILL_LOGO_H + 12; }
-    else { doc.fillColor(INK).font('Helvetica-Bold').fontSize(20).text(SHOP, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 30; }
-    doc.font('Helvetica').fontSize(9).fillColor(LABEL);
-    for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12.5; }
-    doc.fillColor(INK).text(SHOP_EMAIL, 40, hy + 1, { width: 515, align: 'center', lineBreak: false }); hy += 15;
-    doc.moveTo(40, hy + 8).lineTo(555, hy + 8).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); hy += 24;
-    // Bill details: customer on the left, bill number / date on the right.
-    doc.fillColor(DATA).font('Helvetica-Bold').fontSize(14).text(`Bill ${safe(b.bill_number)}`, 300, hy, { width: 255, align: 'right', lineBreak: false });
-    const dateVal = dmy(b.bill_date); doc.font('Helvetica').fontSize(9);
+    // Compact centred logo, then business address and email, then a hairline rule.
+    let hy = 38;
+    if (logo) { doc.image(logo, (595 - BILL_LOGO_W) / 2, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] }); hy += BILL_LOGO_H + 11; }
+    else { doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(18).text(SHOP, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 28; }
+    doc.font('Helvetica').fontSize(8.5).fillColor(LABEL);
+    for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12; }
+    doc.fillColor(INK).text(SHOP_EMAIL, 40, hy + 1, { width: 515, align: 'center', lineBreak: false }); hy += 14;
+    hline(hy + 10, SOFTLINE, 0.8); hy += 28;
+    // Bill details: customer on the left, bill number / date on the right (bill number sits on the customer name's baseline).
+    doc.fillColor(MUTED).font('Helvetica').fontSize(7).text('BILLED TO', 40, hy, { width: 250, lineBreak: false, characterSpacing: 0.9 });
+    doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(11.5).text(safe(b.customer_name) || '\u2014', 40, hy + 13, { width: 250 });
+    let my = Math.max(doc.y, hy + 30);
+    doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(13).text(`Bill ${safe(b.bill_number)}`, 300, hy + 12, { width: 255, align: 'right', lineBreak: false });
+    const dateVal = dmy(b.bill_date); doc.font('Helvetica').fontSize(8.5);
     const dvw = doc.widthOfString(dateVal), dlw = doc.widthOfString('Date: ');
-    doc.fillColor(MUTED).text('Date: ', 555 - dvw - dlw, hy + 20, { lineBreak: false }); doc.fillColor(INK).text(dateVal, 555 - dvw, hy + 20, { lineBreak: false });
-    doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text('BILLED TO', 40, hy + 1, { width: 250, lineBreak: false, characterSpacing: 0.8 });
-    doc.fillColor(DATA).font('Helvetica-Bold').fontSize(12).text(safe(b.customer_name) || '\u2014', 40, hy + 14, { width: 250 });
-    let my = Math.max(doc.y, hy + 36);
+    doc.fillColor(MUTED).text('Date: ', 555 - dvw - dlw, hy + 30, { lineBreak: false }); doc.fillColor(INK).text(dateVal, 555 - dvw, hy + 30, { lineBreak: false });
+    my = Math.max(my, hy + 42);
     if (b.status === 'void') { doc.fillColor('#b42318').font('Helvetica').fontSize(9).text(`VOID${b.void_reason ? ': ' + safe(b.void_reason) : ''}`, 40, my + 2, { width: 515 }); my = doc.y; }
     doc.fillColor('#000'); doc.x = 40; doc.y = my + 16;
     tableHead();
 
-    for (const l of pdfLines(its)) {
+    const plines = pdfLines(its);
+    const baseH = plines.length <= 9 ? 28 : plines.length <= 16 ? 26 : 24;   // a little more air on short bills; long bills stay compact
+    for (const l of plines) {
       const eyes = [l.R, l.L].filter((e): e is Row => !!e);
       const both = !!(l.R && l.L);
       const stack = (pick: (r: Row) => string): string[] => (l.R && l.L && pick(l.R) !== pick(l.L) ? [`R ${pick(l.R)}`, `L ${pick(l.L)}`] : [pick(eyes[0])]);
@@ -203,50 +215,50 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
       const qty = eyes.reduce((t, r) => t + Number(r.quantity), 0);
       const amount = round2(eyes.reduce((t, r) => t + amountOf(r), 0));
 
-      doc.font('Helvetica').fontSize(8.5);
+      doc.font('Helvetica').fontSize(9);
       const lensTxt = names.map(safe).join('\n');
-      const h = Math.max(22, doc.heightOfString(lensTxt, { width: W[2] - PAD - 4 }) + 10, Math.max(rates.length, adds.length) * 10.5 + 10);
-      if (doc.y + h > 760) { doc.addPage(); tableHead(); }
-      const y = doc.y; doc.rect(X[11], y, W[11], h).fill(AMTFILL); doc.lineWidth(0.5).strokeColor(GRID); W.forEach((w, k) => doc.rect(X[k], y, w, h).stroke());
-      const put = (k: number, v: string, align: 'left' | 'center' | 'right' = 'center', size = 8.5, wrap = false, bold = false) => {
+      const h = Math.max(baseH, doc.heightOfString(lensTxt, { width: W[2] - PAD - 4 }) + 14, Math.max(rates.length, adds.length) * 10.5 + 14);
+      if (doc.y + h > 760) { hline(doc.y, OUTER, 0.6); doc.addPage(); tableHead(); }
+      const y = doc.y; doc.rect(X[11], y, W[11], h).fill(AMTFILL);
+      hline(y + h, GRIDL); INNER.forEach(k => vline(X[k], y, y + h, GRIDL)); EDGES.forEach(k => vline(X[k], y, y + h, BOUND, 0.5)); vline(40, y, y + h, OUTER, 0.6); vline(555, y, y + h, OUTER, 0.6);
+      const put = (k: number, v: string, align: 'left' | 'center' | 'right' = 'center', size = 9, wrap = false, bold = false) => {
         if (v === '') return;
         doc.fillColor(DATA).font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size);
-        const inner = align === 'center' ? 2 : PAD;
+        const inner = align === 'center' ? 2 : align === 'right' ? RPAD : PAD;
         const th = doc.heightOfString(v, { width: W[k] - inner * 2 });
         doc.text(v, X[k] + inner, y + Math.max(0, (h - th) / 2), { width: W[k] - inner * 2, align, lineBreak: wrap });
       };
       const num2 = (k: number, v: string) => {   // single power value: decimal-aligned
         if (v === '') return;
-        doc.fillColor(DATA).font('Helvetica').fontSize(8.5);
+        doc.fillColor(DATA).font('Helvetica').fontSize(9);
         doc.text(v, X[k] + (W[k] - NUMW) / 2, y + Math.max(0, (h - doc.heightOfString(v, { width: NUMW })) / 2), { width: NUMW, align: 'right', lineBreak: false });
       };
-      const sz = (a: string[]) => (a.length > 1 ? 7.5 : 8.5);
+      const sz = (a: string[]) => (a.length > 1 ? 7.5 : 9);
       put(0, String(l.no)); put(1, String(qty));
-      doc.fillColor(DATA).font('Helvetica').fontSize(8.5); doc.text(lensTxt, X[2] + PAD, y + Math.max(0, (h - doc.heightOfString(lensTxt, { width: W[2] - PAD - 4 })) / 2), { width: W[2] - PAD - 4 });
+      doc.fillColor(DATA).font('Helvetica').fontSize(9); doc.text(lensTxt, X[2] + PAD, y + Math.max(0, (h - doc.heightOfString(lensTxt, { width: W[2] - PAD - 4 })) / 2), { width: W[2] - PAD - 4 });
       num2(3, pw(l.R?.sph)); num2(4, pw(l.R?.cyl)); put(5, String(l.R?.axis ?? ''));
       num2(6, pw(l.L?.sph)); num2(7, pw(l.L?.cyl)); put(8, String(l.L?.axis ?? ''));
       if (adds.length === 1) num2(9, adds[0]); else put(9, adds.join('\n'), 'center', sz(adds), true);
-      put(10, rates.join('\n'), 'right', sz(rates), true); put(11, money(amount), 'right', 8.5, false, true);
+      put(10, rates.join('\n'), 'right', sz(rates), true); put(11, money(amount), 'right', 9, false, true);
       doc.x = 40; doc.y = y + h;
     }
     if (!its.length) doc.fillColor('#666').fontSize(9).text('No lens lines on this bill.', 40, doc.y + 4).fillColor('#000');
+    else hline(doc.y, OUTER, 0.6);
 
-    // Summary block (labels right-aligned to a common edge, amounts right-aligned with the table's Amount column).
-    if (doc.y > 630) doc.addPage();
-    doc.x = 40; doc.y += 16;
-    const SX = 340, LABEL_R = 460, VAL_X = 465, VAL_W = 549 - 465;
+    // Summary block sits directly under the table: labels right-aligned to a common edge, amounts end at the table's Amount column.
+    if (doc.y > 640) doc.addPage();
+    doc.x = 40; doc.y += 14;
+    const SX = 340, LABEL_R = 458, VAL_X = 466, VAL_W = 84;
     const kv = (label: string, v: unknown, o: { bold?: boolean; size?: number; color?: string; advance: number; dy?: number }) => {
       const y0 = doc.y; const y = y0 + (o.dy ?? 0); doc.font(o.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(o.size ?? 9.5).fillColor(o.color ?? DATA);
-      doc.text(label, SX + PAD, y, { width: LABEL_R - SX - PAD, align: 'right', lineBreak: false });
-      doc.fillColor(DATA).text(money((v ?? 0) as number), VAL_X, y, { width: VAL_W, align: 'right', lineBreak: false });
+      doc.text(label, SX, y, { width: LABEL_R - SX, align: 'right', lineBreak: false });
+      doc.fillColor(o.bold ? NAVY : DATA).text(money((v ?? 0) as number), VAL_X, y, { width: VAL_W, align: 'right', lineBreak: false });
       doc.x = 40; doc.y = y0 + o.advance;
     };
-    doc.moveTo(SX, doc.y).lineTo(555, doc.y).strokeColor(GRID).lineWidth(0.8).stroke(); doc.y += 8;
-    kv('Total', b.total_amount, { bold: true, size: 11.5, advance: 22 });
-    kv('Old balance (O.B.)', b.old_balance, { color: LABEL, advance: 15 }); kv('Return', b.return_amount, { color: LABEL, advance: 15 }); kv('Advance', b.advance_amount, { color: LABEL, advance: 15 });
-    doc.y += 2; doc.moveTo(SX, doc.y).lineTo(555, doc.y).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); doc.y += 6;
-    doc.rect(SX, doc.y, 215, 26).fill(BALFILL); kv('Balance amount', b.balance_amount, { bold: true, size: 12, dy: 7, advance: 26 });
-    if (b.notes) doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`Notes: ${safe(b.notes)}`, 40, doc.y + 10, { width: 300 }).fillColor('#000');
+    kv('Total', b.total_amount, { bold: true, size: 11.5, color: NAVY, advance: 27 });
+    kv('Old balance (O.B.)', b.old_balance, { color: LABEL, advance: 18 }); kv('Return', b.return_amount, { color: LABEL, advance: 18 }); kv('Advance', b.advance_amount, { color: LABEL, advance: 18 });
+    doc.y += 4; doc.rect(40, doc.y, 515, 30).fill(BALFILL); hline(doc.y, BOUND, 0.6); kv('Balance amount', b.balance_amount, { bold: true, size: 12.5, color: NAVY, dy: 8, advance: 30 });
+    if (b.notes) doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`Notes: ${safe(b.notes)}`, 40, doc.y + 12, { width: 300 }).fillColor('#000');
   }
   doc.end(); await done; return Buffer.concat(chunks);
 }
