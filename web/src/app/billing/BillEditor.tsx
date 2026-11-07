@@ -42,7 +42,7 @@ function Picker({ onPick, onClose }: { onPick: (x: any) => void; onClose: () => 
   const [err, setErr] = useState(''); const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const [hi, setHi] = useState(0);
-  const [dir, setDir] = useState<'asc' | 'desc'>('asc');   // order of the search results
+  const [dir, setDir] = useState<'asc' | 'desc'>('desc');   // order of the search results (descending by default)
   useEffect(() => { ref.current?.focus(); const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h); }, [onClose]);
   useEffect(() => {
     let alive = true;
