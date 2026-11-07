@@ -32,17 +32,17 @@ export default function Count() {
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
   const [targetState, setTargetState] = useState<Record<string, RowState>>({});   // save state of the targets grid, per lens
   const [reload, setReload] = useState(0);
-  const [view, setView] = useState<'quick' | 'grid' | 'list' | null>(null);   // null = Quick while counting, List once counting is closed
+  const [view, setView] = useState<'quick' | 'grid' | 'list' | 'targets' | null>(null);   // null = Quick while counting, List once counting is closed
   const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => { const t = setTimeout(() => { setQd(q.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [q]);
 
   // List view (explicitly chosen, or shown automatically once counting is closed) uses the right-hand-power-first order. Quick and Grid are unchanged.
-  const listOrder = view === 'list' || (view !== 'grid' && !!data && data.session.status !== 'open');
+  const listOrder = view === 'list' || (view !== 'grid' && view !== 'targets' && !!data && data.session.status !== 'open');
 
   useEffect(() => {
     let alive = true;
-    const qs = new URLSearchParams({ page: String(page), pageSize: view === 'list' ? '100' : '200', filter, ...(qd ? { q: qd } : {}), ...(listOrder ? { order: 'list' } : {}), ...(view === 'grid' ? { all: '1' } : {}) });
+    const qs = new URLSearchParams({ page: String(page), pageSize: view === 'list' ? '100' : '200', filter, ...(qd ? { q: qd } : {}), ...(listOrder ? { order: 'list' } : {}), ...(view === 'grid' || view === 'targets' ? { all: '1' } : {}) });
     api<Data>(`/api/counts/${id}?${qs}`).then(d => alive && (setData(d), setErr(''))).catch(e => alive && setErr(e.message));
     return () => { alive = false; };
   }, [id, page, filter, qd, reload, view, listOrder]);
@@ -202,11 +202,13 @@ export default function Count() {
         {FILTERS.map(([k, label]) => <button key={k} role="tab" aria-selected={filter === k} className={filter === k ? 'on' : ''} onClick={() => { setFilter(k); setPage(1); }}>{label}</button>)}
       </div>
       <div className="tabs compact" role="tablist" aria-label="Layout">
-        {(open ? [['quick', 'Quick'], ['grid', 'Grid'], ['list', 'List']] as const : [['grid', 'Grid'], ['list', 'List']] as const).map(([k, label]) => <button key={k} role="tab" aria-selected={mode === k} className={mode === k ? 'on' : ''} onClick={() => { setView(k); setPage(1); }}>{label}</button>)}
+        {(open ? [['quick', 'Quick'], ['grid', 'Grid'], ['list', 'List'], ['targets', 'Targets']] as const : [['grid', 'Grid'], ['list', 'List'], ['targets', 'Targets']] as const).map(([k, label]) => <button key={k} role="tab" aria-selected={mode === k} className={mode === k ? 'on' : ''} onClick={() => { setView(k); setPage(1); }}>{label}</button>)}
       </div>
     </div>
 
     {mode === 'quick' ? <QuickCount key={`${page}|${filter}|${qd}`} items={data.items} rowState={rowState} hasNextPage={page < pages} onNextPage={() => setPage(page + 1)} onSave={save} onNotice={setMsg} /> :
+    mode === 'targets' ? <CountGrid only="targets" items={data.items} open={open} rowState={rowState} onSave={save} onBulk={saveMany} onNotice={setMsg}
+      canSetTargets={!!data.canSetTargets} targetRowState={targetState} onSaveTarget={saveTarget} onBulkTargets={saveTargets} /> :
     mode === 'grid' ? <CountGrid items={data.items} open={open} rowState={rowState} onSave={save} onBulk={saveMany} onNotice={setMsg}
       canSetTargets={!!data.canSetTargets} targetRowState={targetState} onSaveTarget={saveTarget} onBulkTargets={saveTargets} /> :
     <div className="wrap" tabIndex={0} role="region" aria-label="Count lines" style={{ maxHeight: 'max(420px, calc(100vh - 230px))' }}>
@@ -243,7 +245,7 @@ export default function Count() {
         </tbody>
       </table>
     </div>}
-    {mode === 'grid'
+    {mode === 'grid' || mode === 'targets'
       ? <div className="pager"><span>{data.total.toLocaleString()} lines · whole grid shown</span></div>
       : <div className="pager">
       <span>Page {page} of {pages} · {data.total.toLocaleString()} lines</span>
