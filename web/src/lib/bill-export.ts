@@ -101,7 +101,7 @@ export async function billsXlsx({ bills, items }: Loaded): Promise<Buffer> {
 // The built-in PDF font (Helvetica) only covers Latin text; anything else (e.g. Telugu) prints as "?". Use the Excel file for such names.
 const safe = (s: unknown) => String(s ?? '').replace(/\u2212/g, '-').replace(/[^\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2022\u2026\u203A]/g, '?');
 // Column layout (sums to the 515pt printable width): No. | Qty. | Lens Type | RIGHT: SPH CYL AXIS | LEFT: SPH CYL AXIS | ADD | Rate | Amount
-const W = [22, 26, 151, 33, 33, 29, 33, 33, 29, 32, 46, 48];
+const W = [24, 28, 145, 33, 33, 29, 33, 33, 29, 32, 47, 49];
 const X = W.map((_, k) => 40 + W.slice(0, k).reduce((a, c) => a + c, 0));
 const BLUE = '#1f5fa8';
 
@@ -121,7 +121,8 @@ const SHOP_ADDRESS = ['Shop No. 13/294, Police Welfare Complex, Arts College Roa
 const SHOP_EMAIL = 'contact@royalopticalsatp.com';
 const BILL_LOGO_H = 62, BILL_LOGO_W = Math.round((BILL_LOGO_H * 1641) / 681);
 // Neutral palette for the bill (print-friendly, no accent colours).
-const INK = '#1f2937', MUTED = '#6b7280', GRID = '#8b93a1', HEADFILL = '#f1f3f6', SOFTLINE = '#d1d5db';
+const INK = '#1f2937', MUTED = '#6b7280', GRID = '#9ca3af', HEADFILL = '#eceff3', SOFTLINE = '#d1d5db';
+const DATA = '#111827', LABEL = '#4b5563', AMTHEAD = '#e2e6ec', AMTFILL = '#f6f7f9', BALFILL = '#e9ecf0';
 
 // Lens name for the bill = ONLY the deepest (leaf) folder name of the lens's category path; no main lens name, no parent / intermediate folders.
 // Inventory path from node_path(): family / MAIN LENS / folder / ... / leaf. If there is no folder below the main lens, the main lens name is shown instead.
@@ -153,11 +154,14 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
   const chunks: Buffer[] = []; doc.on('data', (b: Buffer) => chunks.push(b)); const done = new Promise<void>(res => doc.on('end', () => res()));
   const logo = shopLogo();
 
-  const HH = 15;   // height of each of the two header rows
+  const HH = 16;   // height of each of the two header rows
+  const PAD = 6;   // inner padding for left / right aligned cells
+  doc.font('Helvetica').fontSize(8.5);
+  const NUMW = doc.widthOfString('-00.00');   // power values are right-aligned inside a box of this width, centred in the column, so the decimal points line up
   const tableHead = () => {
-    const y = doc.y; doc.rect(40, y, 515, HH * 2).fill(HEADFILL); doc.lineWidth(0.6).strokeColor(GRID);
+    const y = doc.y; doc.rect(40, y, 515, HH * 2).fill(HEADFILL); doc.rect(X[11], y, W[11], HH * 2).fill(AMTHEAD); doc.lineWidth(0.5).strokeColor(GRID);
     const lab = (t: string, x: number, yy: number, w: number, h: number) => {
-      doc.rect(x, yy, w, h).stroke(); doc.fillColor(INK).font('Helvetica-Bold').fontSize(8).text(t, x, yy + (h - 8) / 2 + 1, { width: w, align: 'center', lineBreak: false });
+      doc.rect(x, yy, w, h).stroke(); doc.fillColor(DATA).font('Helvetica-Bold').fontSize(8).text(t, x, yy + (h - 8) / 2 + 1, { width: w, align: 'center', lineBreak: false });
     };
     ([[0, 'No.'], [1, 'Qty.'], [2, 'Lens Type'], [9, 'ADD'], [10, 'Rate'], [11, 'Amount']] as [number, string][]).forEach(([k, t]) => lab(t, X[k], y, W[k], HH * 2));
     lab('RIGHT EYE', X[3], y, W[3] + W[4] + W[5], HH); lab('LEFT EYE', X[6], y, W[6] + W[7] + W[8], HH);
@@ -170,20 +174,22 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
     doc.addPage();
     // Centred logo, then business address and email, then a hairline rule.
     let hy = 34;
-    if (logo) { doc.image(logo, (595 - BILL_LOGO_W) / 2, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] }); hy += BILL_LOGO_H + 10; }
+    if (logo) { doc.image(logo, (595 - BILL_LOGO_W) / 2, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] }); hy += BILL_LOGO_H + 12; }
     else { doc.fillColor(INK).font('Helvetica-Bold').fontSize(20).text(SHOP, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 30; }
-    doc.font('Helvetica').fontSize(9).fillColor(MUTED);
-    for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12; }
+    doc.font('Helvetica').fontSize(9).fillColor(LABEL);
+    for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12.5; }
     doc.fillColor(INK).text(SHOP_EMAIL, 40, hy + 1, { width: 515, align: 'center', lineBreak: false }); hy += 15;
-    doc.moveTo(40, hy + 8).lineTo(555, hy + 8).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); hy += 22;
-    // Bill details: customer on the left, bill number / date / status on the right.
-    doc.fillColor(INK).font('Helvetica-Bold').fontSize(14).text(`Bill ${safe(b.bill_number)}`, 300, hy, { width: 255, align: 'right', lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`Date: ${dmy(b.bill_date)}`, 300, hy + 19, { width: 255, align: 'right', lineBreak: false });
-    doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text('BILLED TO', 40, hy, { width: 250, lineBreak: false, characterSpacing: 0.8 });
-    doc.fillColor(INK).font('Helvetica-Bold').fontSize(12).text(safe(b.customer_name) || '\u2014', 40, hy + 12, { width: 250 });
-    let my = Math.max(doc.y, hy + 34);
+    doc.moveTo(40, hy + 8).lineTo(555, hy + 8).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); hy += 24;
+    // Bill details: customer on the left, bill number / date on the right.
+    doc.fillColor(DATA).font('Helvetica-Bold').fontSize(14).text(`Bill ${safe(b.bill_number)}`, 300, hy, { width: 255, align: 'right', lineBreak: false });
+    const dateVal = dmy(b.bill_date); doc.font('Helvetica').fontSize(9);
+    const dvw = doc.widthOfString(dateVal), dlw = doc.widthOfString('Date: ');
+    doc.fillColor(MUTED).text('Date: ', 555 - dvw - dlw, hy + 20, { lineBreak: false }); doc.fillColor(INK).text(dateVal, 555 - dvw, hy + 20, { lineBreak: false });
+    doc.fillColor(MUTED).font('Helvetica').fontSize(7.5).text('BILLED TO', 40, hy + 1, { width: 250, lineBreak: false, characterSpacing: 0.8 });
+    doc.fillColor(DATA).font('Helvetica-Bold').fontSize(12).text(safe(b.customer_name) || '\u2014', 40, hy + 14, { width: 250 });
+    let my = Math.max(doc.y, hy + 36);
     if (b.status === 'void') { doc.fillColor('#b42318').font('Helvetica').fontSize(9).text(`VOID${b.void_reason ? ': ' + safe(b.void_reason) : ''}`, 40, my + 2, { width: 515 }); my = doc.y; }
-    doc.fillColor('#000'); doc.x = 40; doc.y = my + 14;
+    doc.fillColor('#000'); doc.x = 40; doc.y = my + 16;
     tableHead();
 
     for (const l of pdfLines(its)) {
@@ -199,35 +205,47 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
 
       doc.font('Helvetica').fontSize(8.5);
       const lensTxt = names.map(safe).join('\n');
-      const h = Math.max(20, doc.heightOfString(lensTxt, { width: W[2] - 6 }) + 8, Math.max(rates.length, adds.length) * 10 + 8);
+      const h = Math.max(22, doc.heightOfString(lensTxt, { width: W[2] - PAD - 4 }) + 10, Math.max(rates.length, adds.length) * 10.5 + 10);
       if (doc.y + h > 760) { doc.addPage(); tableHead(); }
-      const y = doc.y; doc.lineWidth(0.6).strokeColor(GRID); W.forEach((w, k) => doc.rect(X[k], y, w, h).stroke());
-      const put = (k: number, v: string, align: 'left' | 'center' | 'right' = 'center', size = 8.5, wrap = false) => {
+      const y = doc.y; doc.rect(X[11], y, W[11], h).fill(AMTFILL); doc.lineWidth(0.5).strokeColor(GRID); W.forEach((w, k) => doc.rect(X[k], y, w, h).stroke());
+      const put = (k: number, v: string, align: 'left' | 'center' | 'right' = 'center', size = 8.5, wrap = false, bold = false) => {
         if (v === '') return;
-        doc.fillColor('#000').font('Helvetica').fontSize(size);
-        const th = doc.heightOfString(v, { width: W[k] - 4 });
-        doc.text(v, X[k] + 2, y + Math.max(0, (h - th) / 2), { width: W[k] - 4, align, lineBreak: wrap });
+        doc.fillColor(DATA).font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(size);
+        const inner = align === 'center' ? 2 : PAD;
+        const th = doc.heightOfString(v, { width: W[k] - inner * 2 });
+        doc.text(v, X[k] + inner, y + Math.max(0, (h - th) / 2), { width: W[k] - inner * 2, align, lineBreak: wrap });
+      };
+      const num2 = (k: number, v: string) => {   // single power value: decimal-aligned
+        if (v === '') return;
+        doc.fillColor(DATA).font('Helvetica').fontSize(8.5);
+        doc.text(v, X[k] + (W[k] - NUMW) / 2, y + Math.max(0, (h - doc.heightOfString(v, { width: NUMW })) / 2), { width: NUMW, align: 'right', lineBreak: false });
       };
       const sz = (a: string[]) => (a.length > 1 ? 7.5 : 8.5);
-      put(0, String(l.no)); put(1, String(qty), 'center', 9);
-      doc.fillColor('#000').font('Helvetica').fontSize(8.5); doc.text(lensTxt, X[2] + 3, y + Math.max(0, (h - doc.heightOfString(lensTxt, { width: W[2] - 6 })) / 2), { width: W[2] - 6 });
-      put(3, pw(l.R?.sph)); put(4, pw(l.R?.cyl)); put(5, String(l.R?.axis ?? ''));
-      put(6, pw(l.L?.sph)); put(7, pw(l.L?.cyl)); put(8, String(l.L?.axis ?? ''));
-      put(9, adds.join('\n'), 'center', sz(adds), true); put(10, rates.join('\n'), 'right', sz(rates), true); put(11, money(amount), 'right', 9);
+      put(0, String(l.no)); put(1, String(qty));
+      doc.fillColor(DATA).font('Helvetica').fontSize(8.5); doc.text(lensTxt, X[2] + PAD, y + Math.max(0, (h - doc.heightOfString(lensTxt, { width: W[2] - PAD - 4 })) / 2), { width: W[2] - PAD - 4 });
+      num2(3, pw(l.R?.sph)); num2(4, pw(l.R?.cyl)); put(5, String(l.R?.axis ?? ''));
+      num2(6, pw(l.L?.sph)); num2(7, pw(l.L?.cyl)); put(8, String(l.L?.axis ?? ''));
+      if (adds.length === 1) num2(9, adds[0]); else put(9, adds.join('\n'), 'center', sz(adds), true);
+      put(10, rates.join('\n'), 'right', sz(rates), true); put(11, money(amount), 'right', 8.5, false, true);
       doc.x = 40; doc.y = y + h;
     }
     if (!its.length) doc.fillColor('#666').fontSize(9).text('No lens lines on this bill.', 40, doc.y + 4).fillColor('#000');
 
-    if (doc.y > 650) doc.addPage();
-    doc.x = 40; doc.y += 10;
-    const kv = (label: string, v: unknown, bold = false) => {
-      const y = doc.y; doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 11 : 10).fillColor('#000');
-      doc.text(label, 340, y, { width: 130, align: 'right', lineBreak: false }); doc.text(money((v ?? 0) as number), 475, y, { width: 80, align: 'right', lineBreak: false });
-      doc.x = 40; doc.y = y + (bold ? 17 : 14);
+    // Summary block (labels right-aligned to a common edge, amounts right-aligned with the table's Amount column).
+    if (doc.y > 630) doc.addPage();
+    doc.x = 40; doc.y += 16;
+    const SX = 340, LABEL_R = 460, VAL_X = 465, VAL_W = 549 - 465;
+    const kv = (label: string, v: unknown, o: { bold?: boolean; size?: number; color?: string; advance: number; dy?: number }) => {
+      const y0 = doc.y; const y = y0 + (o.dy ?? 0); doc.font(o.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(o.size ?? 9.5).fillColor(o.color ?? DATA);
+      doc.text(label, SX + PAD, y, { width: LABEL_R - SX - PAD, align: 'right', lineBreak: false });
+      doc.fillColor(DATA).text(money((v ?? 0) as number), VAL_X, y, { width: VAL_W, align: 'right', lineBreak: false });
+      doc.x = 40; doc.y = y0 + o.advance;
     };
-    kv('Total', b.total_amount, true); kv('Old balance (O.B.)', b.old_balance); kv('Return', b.return_amount); kv('Advance', b.advance_amount);
-    doc.moveTo(340, doc.y).lineTo(555, doc.y).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); doc.y += 8;
-    doc.rect(340, doc.y - 5, 215, 24).fill(HEADFILL); kv('Balance amount', b.balance_amount, true);
+    doc.moveTo(SX, doc.y).lineTo(555, doc.y).strokeColor(GRID).lineWidth(0.8).stroke(); doc.y += 8;
+    kv('Total', b.total_amount, { bold: true, size: 11.5, advance: 22 });
+    kv('Old balance (O.B.)', b.old_balance, { color: LABEL, advance: 15 }); kv('Return', b.return_amount, { color: LABEL, advance: 15 }); kv('Advance', b.advance_amount, { color: LABEL, advance: 15 });
+    doc.y += 2; doc.moveTo(SX, doc.y).lineTo(555, doc.y).strokeColor(SOFTLINE).lineWidth(0.8).stroke(); doc.y += 6;
+    doc.rect(SX, doc.y, 215, 26).fill(BALFILL); kv('Balance amount', b.balance_amount, { bold: true, size: 12, dy: 7, advance: 26 });
     if (b.notes) doc.font('Helvetica').fontSize(9).fillColor(MUTED).text(`Notes: ${safe(b.notes)}`, 40, doc.y + 10, { width: 300 }).fillColor('#000');
   }
   doc.end(); await done; return Buffer.concat(chunks);
