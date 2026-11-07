@@ -181,14 +181,25 @@ export async function billsPdf({ bills, items }: Loaded): Promise<Buffer> {
   for (const b of bills) {
     const its = items.get(b.id) ?? [];
     doc.addPage();
-    // Compact centred logo, then business address and email, then a hairline rule.
+    // Header: logo centred; shop address to its left and email to its right (both vertically centred on the logo), then a hairline rule.
     let hy = 38;
-    if (logo) { doc.image(logo, (595 - BILL_LOGO_W) / 2, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] }); hy += BILL_LOGO_H + 11; }
-    else { doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(18).text(SHOP, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 28; }
-    doc.font('Helvetica').fontSize(8.5).fillColor(LABEL);
-    for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12; }
-    doc.fillColor(INK).text(SHOP_EMAIL, 40, hy + 1, { width: 515, align: 'center', lineBreak: false }); hy += 14;
-    hline(hy + 10, SOFTLINE, 0.8); hy += 28;
+    if (logo) {
+      const lx = (595 - BILL_LOGO_W) / 2, GAP = 18;
+      doc.image(logo, lx, hy, { fit: [BILL_LOGO_W, BILL_LOGO_H] });
+      doc.font('Helvetica').fontSize(8.5).fillColor(LABEL);
+      const addr = ['Shop No. 13/294, Police Welfare Complex,', 'Arts College Road, Anantapur \u2013 515001,', 'Andhra Pradesh, India'].join('\n'), aw = lx - GAP - 40;
+      const ah = doc.heightOfString(addr, { width: aw, lineGap: 2 });
+      doc.text(addr, 40, hy + (BILL_LOGO_H - ah) / 2, { width: aw, align: 'left', lineGap: 2 });
+      const ew = 595 - lx - BILL_LOGO_W - GAP - 40;
+      doc.fillColor(INK).text(SHOP_EMAIL, 555 - ew, hy + (BILL_LOGO_H - 10) / 2, { width: ew, align: 'right', lineBreak: false });
+      hy += BILL_LOGO_H;
+    } else {
+      doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(18).text(SHOP, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 28;
+      doc.font('Helvetica').fontSize(8.5).fillColor(LABEL);
+      for (const ln of SHOP_ADDRESS) { doc.text(ln, 40, hy, { width: 515, align: 'center', lineBreak: false }); hy += 12; }
+      doc.fillColor(INK).text(SHOP_EMAIL, 40, hy + 1, { width: 515, align: 'center', lineBreak: false }); hy += 14;
+    }
+    hline(hy + 14, SOFTLINE, 0.8); hy += 32;
     // Bill details: customer on the left, bill number / date on the right (bill number sits on the customer name's baseline).
     doc.fillColor(MUTED).font('Helvetica').fontSize(7).text('BILLED TO', 40, hy, { width: 250, lineBreak: false, characterSpacing: 0.9 });
     doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(11.5).text(safe(b.customer_name) || '\u2014', 40, hy + 13, { width: 250 });
