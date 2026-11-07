@@ -48,3 +48,9 @@ export const GET = route(async (req, actor, { params }) => {
     return { session: s, summary: sum, page: all ? 1 : page, pageSize: all ? Math.max(total, 1) : size, total, items: lines };
   });
 });
+// DELETE /api/counts/:id — removes one count (open, submitted or cancelled; never an approved one). Administrators and inventory managers only.
+// Only the count session and its lines are removed; stock, targets and movements are not touched. See db/migrations/0015_delete_count_session.sql.
+export const DELETE = route(async (_req, actor, { params }) => {
+  const id = uuid.parse(params.id);
+  return withActor(actor, async c => { await c.query('select delete_count_session($1)', [id]); return { deleted: id }; });
+});

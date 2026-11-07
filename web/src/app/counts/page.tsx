@@ -27,6 +27,14 @@ export default function Counts() {
 
   useEffect(() => { api('/api/counts').then(r => setItems(r.items)).catch(e => setErr(e.message)); }, []);
 
+  async function remove(e: React.MouseEvent, s: Session) {
+    e.preventDefault(); e.stopPropagation();   // the card is a link: do not open the count
+    if (!confirm(`Delete the count "${s.name}"?\n\n${s.counted.toLocaleString()} of ${s.lines.toLocaleString()} lines were counted in it. They will be lost. Stock is not changed.\n\nThis cannot be undone.`)) return;
+    setErr('');
+    try { await api(`/api/counts/${s.id}`, { method: 'DELETE' }); setItems(list => (list ?? []).filter(x => x.id !== s.id)); }
+    catch (er: any) { setErr(er.message); }
+  }
+
   const isActive = (s: Session) => s.status === 'open' || s.status === 'submitted';
   const shown = useMemo(() => (items ?? []).filter(s => tab === 'all' ? true : tab === 'active' ? isActive(s) : s.status === tab), [items, tab]);
   const counts = useMemo(() => ({ active: (items ?? []).filter(isActive).length }), [items]);
@@ -71,7 +79,14 @@ export default function Counts() {
           <div className="session-top"><b>{s.name}</b><Badge tone={STATUS_TONE[s.status] ?? 'mute'}>{STATUS_LABEL[s.status] ?? s.status}</Badge></div>
           <div className="mut small" style={{ marginTop: 4 }}>{s.scope_name ?? 'All inventory'} · started {ago(s.created_at)}</div>
           <div className={'bar' + (pct === 100 ? ' done' : '')} role="progressbar" aria-label={`${s.name} progress`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><i style={{ width: pct + '%' }} /></div>
-          <div className="session-foot"><span><b>{s.counted.toLocaleString()}</b> of {s.lines.toLocaleString()} counted ({pct}%)</span><span className="go">{s.status === 'open' ? 'Continue' : 'View'}</span></div>
+          <div className="session-foot"><span><b>{s.counted.toLocaleString()}</b> of {s.lines.toLocaleString()} counted ({pct}%)</span><span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            <span className="go">{s.status === 'open' ? 'Continue' : 'View'}</span>
+            {s.status !== 'approved' && (
+              <button type="button" onClick={e => remove(e, s)} aria-label={`Delete count ${s.name}`} title="Delete this count"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, padding: 0, borderRadius: 8, color: 'var(--bad, #b42318)' }}>
+                <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 15, height: 15, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></svg>
+              </button>)}
+          </span></div>
         </Link>);
       })}
     </div>
