@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { fmtPower } from '@/lib/power-format';
+import BackButton from './BackButton';
 
 /* ───────── icons (one stroke style, 24px grid) ───────── */
 const PATHS: Record<string, ReactNode> = {
@@ -29,10 +30,12 @@ export function Ico({ n, className }: { n: keyof typeof PATHS | string; classNam
 
 /* ───────── page header: breadcrumbs → title (+ badge) → one-line purpose → actions ───────── */
 export type Crumb = { label: string; href?: string };
-export function PageHeader({ title, sub, crumbs, actions, badge }: { title: ReactNode; sub?: ReactNode; crumbs?: Crumb[]; actions?: ReactNode; badge?: ReactNode }) {
+/** back = where "← Back" goes when there is no earlier screen of the app to return to (normally the level above). Omit it on top-level pages. */
+export function PageHeader({ title, sub, crumbs, actions, badge, back }: { title: ReactNode; sub?: ReactNode; crumbs?: Crumb[]; actions?: ReactNode; badge?: ReactNode; back?: string }) {
   return (
     <div className="page-head">
       <div>
+        {back && <BackButton fallback={back} />}
         {crumbs && crumbs.length > 0 && (
           <nav className="crumbs" aria-label="Breadcrumb">
             {crumbs.map((c, i) => (

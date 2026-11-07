@@ -15,7 +15,7 @@ export default function Matrix() {
   const grid = new Map<string, any>(d.cells.map((c: any) => [`${c.ri}:${c.ci}`, c]));
   const parts = String(d.node.path ?? '').split('/').filter(Boolean);
   return (<>
-    <PageHeader crumbs={[{ label: 'Inventory', href: '/inventory' }, ...parts.map(p => ({ label: p }))]} title="Power matrix" sub={<>Each cell shows <b>available / target</b>. A dash means “not recorded in the source”, never zero. The grid follows the order of the original sheet.</>} />
+    <PageHeader back="/inventory" crumbs={[{ label: 'Inventory', href: '/inventory' }, ...parts.map(p => ({ label: p }))]} title="Power matrix" sub={<>Each cell shows <b>available / target</b>. A dash means “not recorded in the source”, never zero. The grid follows the order of the original sheet.</>} />
     <div className="legend-row" aria-label="Legend">
       {(['ok', 'below_target', 'out_of_stock', 'stock_unknown', 'unverified'] as const).map(k => <span key={k}><span className={'dot ' + STATUS[k][1]} aria-hidden="true" />{STATUS[k][0]}{MARK[k] && <b aria-hidden="true"> {MARK[k]}</b>}</span>)}
     </div>

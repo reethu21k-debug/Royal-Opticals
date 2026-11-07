@@ -32,10 +32,26 @@ function RenameBox({ pick, custs, onDone }: { pick: any; custs: any[]; onDone: (
   </span>;
 }
 
+// Customer list → one customer's bills is a level of its own: it gets a browser-history entry, so Back returns to the list, and coming back
+// from a bill shows the same customer again.
+const PK = 'roCustomer';
+const pickInHistory = () => { try { return window.history.state?.[PK] ?? null; } catch { return null; } };
+
 export default function CustomerHistory() {
   const [q, setQ] = useState(''); const [dq, setDq] = useState('');
   const [custs, setCusts] = useState<any[] | null>(null);
   const [pick, setPick] = useState<any>(null);          // the chosen customer row
+  function choose(row: any) {   // list → customer = new history entry; customer → another customer = same level, so the entry is replaced
+    setPick(row);
+    try { const st = { ...(window.history.state ?? {}), [PK]: row }; if (pickInHistory()) window.history.replaceState(st, ''); else window.history.pushState(st, ''); } catch { /* not tracked */ }
+  }
+  function backToList() { if (pickInHistory()) window.history.back(); else setPick(null); }
+  useEffect(() => {
+    const saved = pickInHistory(); if (saved) setPick(saved);   // returned from a bill: open the same customer again
+    const onPop = (e: PopStateEvent) => { if (e.state) setPick(e.state[PK] ?? null); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [bills, setBills] = useState<any[] | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState('');
   useEffect(() => { const t = setTimeout(() => setDq(q), 250); return () => clearTimeout(t); }, [q]);
@@ -59,7 +75,7 @@ export default function CustomerHistory() {
   const sm = bills ? summarizeBills(bills) : null;
 
   return (<>
-    <PageHeader title="Customer bill history" sub="Search a customer by name to see every bill made for them, then download the history."
+    <PageHeader back="/billing" title="Customer bill history" sub="Search a customer by name to see every bill made for them, then download the history."
       crumbs={[{ label: 'Billing', href: '/billing' }, { label: 'Customer history' }]} />
     <div className="row" style={{ marginBottom: 10 }}>
       <input type="search" aria-label="Search customers" placeholder="Customer name…" value={q} onChange={e => setQ(e.target.value)} />
@@ -69,16 +85,17 @@ export default function CustomerHistory() {
     {custs && custs.length === 0 && <EmptyState icon="search" title="No customers found">{dq ? 'No bill has a customer name matching this search.' : 'Customers appear here once a bill has a customer name.'}</EmptyState>}
     {custs && custs.length > 0 && <div className="wrap" tabIndex={0} role="region" aria-label="Customers"><table>
       <thead><tr><th>Customer</th><th className="n">Bills</th><th>Last bill</th><th className="n">Billed (excl. void)</th></tr></thead>
-      <tbody>{custs.map(c => <tr key={c.name} className={s.clickRow} aria-selected={pick?.name === c.name} style={pick?.name === c.name ? { background: 'var(--acc-soft)' } : undefined} onClick={() => setPick(c)}>
-        <td><button type="button" className={s.linkBtn} onClick={e => { e.stopPropagation(); setPick(c); }}>{c.name}</button></td>
+      <tbody>{custs.map(c => <tr key={c.name} className={s.clickRow} aria-selected={pick?.name === c.name} style={pick?.name === c.name ? { background: 'var(--acc-soft)' } : undefined} onClick={() => choose(c)}>
+        <td><button type="button" className={s.linkBtn} onClick={e => { e.stopPropagation(); choose(c); }}>{c.name}</button></td>
         <td className="n"><b>{c.bill_count}</b></td><td className="mut">{fmtDate(c.last_bill_date)}</td><td className="n">{money(c.total_billed)}</td></tr>)}</tbody></table></div>}
 
     {pick && <section aria-label={`Bills for ${pick.name}`} style={{ marginTop: 22 }}>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 8px' }}>
+        <button type="button" className="sm" onClick={backToList}>← Back</button>
         <h2 style={{ margin: 0 }}>{pick.name}</h2>
         <RenameBox key={pick.name} pick={pick} custs={custs ?? []} onDone={async to => {
           const r = await api(`/api/bills/customers?${new URLSearchParams({ q: to })}`);
-          setPick(r.items.find((c: any) => normName(c.name) === normName(to)) ?? null); setQ(to); setDq(to);
+          const row = r.items.find((c: any) => normName(c.name) === normName(to)); if (row) choose(row); else setPick(null); setQ(to); setDq(to);
         }} />
       </div>
       <div className={s.sumStrip} aria-live="polite">

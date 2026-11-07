@@ -11,6 +11,16 @@ const KIND_ICON: Record<string, string> = { family: 'folder', folder: 'folder', 
 const KIND_LABEL: Record<string, string> = { family: 'Category', folder: 'Folder', workbook: 'Workbook', block: 'Grid' };
 const fmt = (n: number) => n.toLocaleString();
 
+/* Step-by-step history (opt-in: trackHistory). Every level you open is a browser-history entry that remembers the whole path, so
+ * • the browser Back button and the "← Back" button go up ONE level at a time,
+ * • coming back from a lens / bill / count (browser Back or the page's "← Back") shows the same folder again, not the top.
+ * The address does not change; the path lives in history.state. */
+const HK = 'roTree';
+type Snap = { stack: Crumb[]; n: number };
+const readSnap = (): Snap | null => { try { const v = window.history.state?.[HK]; return v && Array.isArray(v.stack) && typeof v.n === 'number' ? v : null; } catch { return null; } };
+const writeSnap = (snap: Snap, mode: 'push' | 'replace') => { try { const st = { ...(window.history.state ?? {}), [HK]: snap }; if (mode === 'push') window.history.pushState(st, ''); else window.history.replaceState(st, ''); } catch { /* history unavailable: the path is just not tracked */ } };
+const idsOf = (s: Crumb[]) => s.map(x => x.id).join('/');
+
 /** "Order report" downloads (PDF / Excel) for one level of the hierarchy. id = null means everything. Includes every sub-level below it. */
 function ReportLinks({ id, label }: { id: string | null; label: string }) {
   const base = '/api/suggested-orders/export?' + (id ? `nodeId=${id}&` : '');
@@ -50,12 +60,29 @@ function RenameForm({ initial, original, kindLabel, onSave, onCancel }: { initia
  * reports: also show "Order report" PDF / Excel download links for the level you are on and for every group tile.
  * editable: show a rename pencil on every tile and on the level you are inside (folders, files and grids at every depth); onRenamed fires after a save.
  */
-export default function Tree({ sel, onSel, title = 'Browse by group', reports = false, editable = false, onRenamed }: { sel: string | null; onSel: OnSel; title?: string; reports?: boolean; editable?: boolean; onRenamed?: (id: string, name: string) => void }) {
+export default function Tree({ sel, onSel, title = 'Browse by group', reports = false, editable = false, onRenamed, trackHistory = false }: { sel: string | null; onSel: OnSel; title?: string; reports?: boolean; editable?: boolean; onRenamed?: (id: string, name: string) => void; trackHistory?: boolean }) {
   const cache = useRef<Record<string, N[]>>({});
   const [stack, setStack] = useState<Crumb[]>([]);
   const [kids, setKids] = useState<N[] | null>(null); const [err, setErr] = useState(''); const [tick, setTick] = useState(0); const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState<string | null>(null);   // id of the tile being renamed, or 'cur' for the level you are inside
   const cur = stack.length ? stack[stack.length - 1] : null;
+  const pos = useRef(0);                        // position of the current level among the history entries this browser pushed
+  const entries = useRef<string[]>(['']);       // entries[pos] = ids of the path shown at that position (to know if the parent is the previous entry)
+  const onSelRef = useRef(onSel); onSelRef.current = onSel;
+  const applyStack = (next: Crumb[]) => {       // show a path that came from history (browser Back / Forward / return from a detail page)
+    setStack(next);
+    if (next.length === 0) onSelRef.current(null, '', []); else { const t = next[next.length - 1]; onSelRef.current(t.id, t.name, next.map(x => x.name), { kind: t.kind, original: t.orig }); }
+  };
+  useEffect(() => {
+    if (!trackHistory) return;
+    const snap = readSnap();
+    if (snap) { pos.current = snap.n; entries.current[snap.n] = idsOf(snap.stack); if (snap.stack.length) applyStack(snap.stack); }
+    else writeSnap({ stack: [], n: 0 }, 'replace');   // mark the screen you started on as the top level
+    const onPop = (e: PopStateEvent) => { const v = e.state?.[HK] as Snap | undefined; if (!v || !Array.isArray(v.stack)) return; pos.current = v.n; entries.current[v.n] = idsOf(v.stack); applyStack(v.stack); };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const remember = (next: Crumb[]) => { if (!trackHistory) return; const n = pos.current + 1; pos.current = n; entries.current.length = n; entries.current[n] = idsOf(next); writeSnap({ stack: next, n }, 'push'); };
 
   // keep in step with the page: cleared from outside → back to the top; set from outside → show that group
   useEffect(() => {
@@ -72,21 +99,27 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
   }, [cur?.id, tick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const names = (s: Crumb[]) => s.map(c => c.name);
-  function open(n: N) { const next = [...stack, { id: n.id, name: n.source_name, count: n.variant_count, kind: n.kind, orig: n.original_name }]; setStack(next); onSel(n.id, n.source_name, names(next), { kind: n.kind, original: n.original_name }); }
+  function open(n: N) { const next = [...stack, { id: n.id, name: n.source_name, count: n.variant_count, kind: n.kind, orig: n.original_name }]; setStack(next); remember(next); onSel(n.id, n.source_name, names(next), { kind: n.kind, original: n.original_name }); }
   /** rename on the server, then refresh just what this browser has cached (the list it sits in, and the breadcrumb if it is the current level) */
   async function rename(id: string, name: string, isCur: boolean) {
     const r = await api<{ node: { source_name: string; original_name: string | null } }>(`/api/catalog/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) });
     const saved = r.node.source_name; const orig = r.node.original_name;
     if (isCur) {
-      const next = stack.map(c => c.id === id ? { ...c, name: saved, orig } : c); setStack(next);
+      const next = stack.map(c => c.id === id ? { ...c, name: saved, orig } : c); setStack(next); if (trackHistory) writeSnap({ stack: next, n: pos.current }, 'replace');
       delete cache.current[stack.length > 1 ? stack[stack.length - 2].id : 'root'];   // the list that contains it still has the old name
       onSel(id, saved, names(next), { kind: cur?.kind, original: orig });
     } else { delete cache.current[cur?.id ?? 'root']; setTick(t => t + 1); }
     setEditing(null); onRenamed?.(id, saved);
   }
   function goTo(depth: number) { // depth -1 = top
-    const next = stack.slice(0, depth + 1); setStack(next);
+    const next = stack.slice(0, depth + 1); setStack(next); remember(next);
     if (next.length === 0) onSel(null, '', []); else { const t = next[next.length - 1]; onSel(t.id, t.name, names(next), { kind: t.kind, original: t.orig }); }
+  }
+  /** "← Back": one level up. If the level above is the previous history entry (the usual case) step back in history, otherwise open it as a new entry. */
+  function up() {
+    if (!stack.length) return;
+    if (trackHistory && pos.current > 0 && entries.current[pos.current - 1] === idsOf(stack.slice(0, -1))) { window.history.back(); return; }
+    goTo(stack.length - 2);
   }
   const rootTotal = (cache.current['root'] ?? []).reduce((s, r) => s + r.variant_count, 0);
   const total = cur ? cur.count : rootTotal;
@@ -107,7 +140,7 @@ export default function Tree({ sel, onSel, title = 'Browse by group', reports = 
       <div className="gb-now" aria-live="polite">
         <div><b>{cur ? cur.name : 'All inventory'}</b><span>{total !== undefined && total !== null && (cur || rootTotal) ? `${fmt(total)} lenses` : ''}</span></div>
         {editable && cur && editing !== 'cur' && <button type="button" className="sm" onClick={() => setEditing('cur')} aria-label={`Rename ${cur.name}`}><Ico n="edit" /> Rename</button>}
-        {stack.length > 0 && <button type="button" className="sm" onClick={() => goTo(stack.length - 2)}>← Back</button>}
+        {stack.length > 0 && <button type="button" className="sm" onClick={up}>← Back</button>}
       </div>
       {editable && cur && editing === 'cur' && <RenameForm initial={cur.name} original={cur.orig} kindLabel={KIND_LABEL[cur.kind ?? ''] ?? 'item'} onSave={n => rename(cur.id, n, true)} onCancel={() => setEditing(null)} />}
 

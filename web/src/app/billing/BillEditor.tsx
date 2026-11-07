@@ -261,7 +261,7 @@ export default function BillEditor({ id }: { id?: string }) {
   };
 
   return (<>
-    <PageHeader actions={id && bill ? <div className={s.dlBtns}>
+    <PageHeader back="/billing" actions={id && bill ? <div className={s.dlBtns}>
       <button type="button" disabled={!!dl} title="Downloads the saved version of this bill" onClick={() => getFile('pdf')}><Ico n="download" />{dl === 'pdf' ? 'Preparing…' : 'PDF'}</button>
       <button type="button" disabled={!!dl} title="Downloads the saved version of this bill" onClick={() => getFile('xlsx')}><Ico n="download" />{dl === 'xlsx' ? 'Preparing…' : 'Excel'}</button>
     </div> : undefined} title={bill ? `Bill ${bill.bill_number}` : 'New bill'} badge={bill ? <> <Badge tone={stTone}>{stLabel}</Badge></> : undefined}

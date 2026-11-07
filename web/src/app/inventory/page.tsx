@@ -95,7 +95,7 @@ function Inner() {
       />
 
       <div className="split">
-        <Tree reports sel={node} onSel={(id, n, path) => { setNode(id); setName(n); setTrail(path ?? (n ? [n] : [])); setPage(1); }} />
+        <Tree reports trackHistory sel={node} onSel={(id, n, path) => { setNode(id); setName(n); setTrail(path ?? (n ? [n] : [])); setPage(1); }} />
 
         <div>
           {/* ───── search & quick status filter ───── */}

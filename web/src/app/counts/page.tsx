@@ -138,7 +138,7 @@ export default function Counts() {
     <div className="split">
       <div>
         <div className="step-label"><span className="step-no">1</span>Choose what to count</div>
-        <Tree title="What are you counting?" sel={node} onSel={(id, n, path) => { setNode(id); setNodeName(n); setTrail(path ?? []); }} />
+        <Tree title="What are you counting?" trackHistory sel={node} onSel={(id, n, path) => { setNode(id); setNodeName(n); setTrail(path ?? []); }} />
       </div>
       <div>
         <div className="step-label"><span className="step-no">2</span>Name it and start</div>

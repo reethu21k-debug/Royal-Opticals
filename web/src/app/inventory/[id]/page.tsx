@@ -71,6 +71,7 @@ export default function Detail() {
     <>
       {/* ───── header ───── */}
       <PageHeader
+        back="/inventory"
         crumbs={[{ label: 'Inventory', href: '/inventory' }, ...String(v.path ?? '').split('/').filter(Boolean).map((x: string) => ({ label: x }))]}
         title={<Lens row={v.row_label_source} col={v.col_axis_name ? v.col_label_source : null} />}
         badge={<Badge tone={cls.replace('b-', '') as any}>{lab}</Badge>}

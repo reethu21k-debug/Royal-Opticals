@@ -145,7 +145,7 @@ export default function Count() {
     else { setMsg(`Imported ${j.imported} counts (${j.skippedBlank} blank rows skipped).`); setReload(t => t + 1); }
   }
 
-  if (err && !data) return (<><PageHeader title="Stock count" crumbs={[{ label: 'Stock counts', href: '/counts' }]} /><div className="err" role="alert">{err}</div></>);
+  if (err && !data) return (<><PageHeader back="/counts" title="Stock count" crumbs={[{ label: 'Stock counts', href: '/counts' }]} /><div className="err" role="alert">{err}</div></>);
   if (!data) return <Loading rows={6} label="Loading count" />;
 
   const s = data.session, open = s.status === 'open', sum = data.summary;
@@ -156,7 +156,7 @@ export default function Count() {
   let lastGroup = '';
 
   return (<>
-    <PageHeader crumbs={[{ label: 'Stock counts', href: '/counts' }, { label: s.name }]} title={s.name}
+    <PageHeader back="/counts" crumbs={[{ label: 'Stock counts', href: '/counts' }, { label: s.name }]} title={s.name}
       badge={<Badge tone={STATUS_TONE[s.status] ?? 'mute'}>{STATUS_LABEL[s.status] ?? s.status}</Badge>} sub={GUIDE[s.status]} />
 
     {/* progress + the one next action stay in view while you scroll */}
