@@ -20,6 +20,10 @@ export default function Counts() {
   const [trail, setTrail] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState('active');
+  const [hidden, setHidden] = useState(false);   // hide / show the list of counts (remembered in this browser)
+
+  useEffect(() => { try { setHidden(localStorage.getItem('counts-list-hidden') === '1'); } catch {} }, []);
+  function toggleList() { setHidden(h => { const n = !h; try { localStorage.setItem('counts-list-hidden', n ? '1' : '0'); } catch {} return n; }); }
 
   useEffect(() => { api('/api/counts').then(r => setItems(r.items)).catch(e => setErr(e.message)); }, []);
 
@@ -44,9 +48,16 @@ export default function Counts() {
     {err && <div className="err" role="alert">{err}</div>}
 
     {/* ───── existing sessions ───── */}
-    <div className="tabs" role="tablist" aria-label="Filter counts">
-      {TABS.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}{k === 'active' && counts.active > 0 && <span className="n">{counts.active}</span>}</button>)}
+    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div className="tabs" role="tablist" aria-label="Filter counts" style={{ flex: '1 1 auto' }}>
+        {TABS.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); if (hidden) toggleList(); }}>{label}{k === 'active' && counts.active > 0 && <span className="n">{counts.active}</span>}</button>)}
+      </div>
+      <button type="button" className="btn sm" onClick={toggleList} aria-expanded={!hidden} aria-controls="counts-list" style={{ marginBottom: 6 }}
+        title={hidden ? 'Show the list of counts' : 'Hide the list of counts'}>
+        {hidden ? `Show counts${items ? ` (${shown.length})` : ''}` : 'Hide counts'}
+      </button>
     </div>
+    <div id="counts-list" hidden={hidden}>
     {!items && !err && <Loading rows={3} label="Loading counts" />}
     {items && shown.length === 0 && (
       <EmptyState icon="clipboard" title={tab === 'active' ? 'No counts in progress' : `No ${tab === 'all' ? '' : tab + ' '}counts yet`}>
@@ -63,6 +74,7 @@ export default function Counts() {
           <div className="session-foot"><span><b>{s.counted.toLocaleString()}</b> of {s.lines.toLocaleString()} counted ({pct}%)</span><span className="go">{s.status === 'open' ? 'Continue' : 'View'}</span></div>
         </Link>);
       })}
+    </div>
     </div>
 
     {/* ───── start a new count ───── */}
