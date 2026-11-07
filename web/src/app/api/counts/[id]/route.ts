@@ -2,6 +2,7 @@ import { route, ApiError } from '@/lib/http';
 import { withActor } from '@/lib/db';
 import { uuid } from '@/lib/validation';
 import { clampPage } from '@/lib/rules';
+import { countOrderBy } from '@/lib/count-order';
 export const dynamic = 'force-dynamic';
 
 // GET /api/counts/:id?filter=all|uncounted|counted|differences&q=text&page=1&pageSize=100
@@ -24,11 +25,9 @@ export const GET = route(async (req, actor, { params }) => {
     where.push(`(lv.row_label_source ilike ${p} or lv.col_label_source ilike ${p} or wn.source_name ilike ${p} or bn.source_name ilike ${p})`);
   }
   const cond = where.join(' and ');
-  // order=list (List view only): right-hand power (source_col) is the outer loop, left-hand power (source_row) the inner loop.
-  // Every other view keeps the original order. lv.id only breaks exact ties so paging stays stable.
-  const orderBy = sp.get('order') === 'list'
-    ? 'wn.source_path, bn.sort_order, lv.source_col nulls last, lv.source_row nulls last, lv.row_occurrence, lv.id'
-    : 'wn.source_path, bn.sort_order, lv.source_row nulls last, lv.row_occurrence, lv.source_col nulls last';
+  // order=list (List view only): inside KRIPTOK LENS / PROGRESSIVE LENS the left-hand power (SPH) is the outer key and the right-hand power the
+  // inner key; every other folder and every other view (Grid, Quick, Excel sheet) keeps the original order. See lib/count-order.ts.
+  const orderBy = countOrderBy(sp.get('order'));
   const from = `from count_lines l join lens_variants lv on lv.id = l.variant_id
       join catalog_nodes bn on bn.id = lv.block_node_id join catalog_nodes wn on wn.id = bn.parent_id`;
 

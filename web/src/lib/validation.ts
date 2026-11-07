@@ -13,6 +13,7 @@ export const InventoryQuery = z.object({
   addMin: z.coerce.number().min(-60).max(60).optional(), addMax: z.coerce.number().min(-60).max(60).optional(),
   active: z.enum(['active', 'archived', 'all']).optional(), net: z.enum(['0', '1']).optional(),
   dir: z.enum(['asc', 'desc']).optional(),   // list order: asc (default, catalogue order) or desc (reversed)
+  order: z.enum(['sph']).optional(),         // 'sph' = Inventory page only: SPH-first order inside KRIPTOK LENS / PROGRESSIVE LENS. Absent = unchanged.
 });
 export const PoCreateBody = z.object({
   supplierId: uuid, poNumber: z.string().trim().min(1).max(40), expectedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), notes: z.string().max(1000).optional(),

@@ -29,7 +29,8 @@ function Inner() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');   // list order; ascending = the existing default order
 
-  const { data, err, loading, qs } = useList('/api/inventory', { nodeId: node, q: dq, status, active, page, pageSize: 50, dir: dir === 'desc' ? 'desc' : '', ...r });
+  // order: 'sph' = SPH-first order inside KRIPTOK LENS / PROGRESSIVE LENS only (see lib/inventory-query.ts). Other folders keep their order.
+  const { data, err, loading, qs } = useList('/api/inventory', { nodeId: node, q: dq, status, active, page, pageSize: 50, dir: dir === 'desc' ? 'desc' : '', order: 'sph', ...r });
 
   // bulk target
   const [bt, setBt] = useState('');
