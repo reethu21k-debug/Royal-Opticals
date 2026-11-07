@@ -79,13 +79,16 @@ function Picker({ onPick, onClose }: { onPick: (x: any) => void; onClose: () => 
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, margin: '0 0 8px' }}>
           <p className={s.keys} style={{ margin: 0 }}>Type to search · ↑ ↓ to move · Enter to pick · Esc to close</p>
-          <button type="button" className="sm" onClick={() => { setDir(dir === 'asc' ? 'desc' : 'asc'); ref.current?.focus(); }}
-            title={dir === 'asc' ? 'Ascending order. Click to show results in descending order.' : 'Descending order. Click to show results in ascending order.'}
-            aria-label={`Sort order: ${dir === 'asc' ? 'ascending' : 'descending'}. Activate to switch to ${dir === 'asc' ? 'descending' : 'ascending'}.`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', transition: 'transform .18s', transform: dir === 'desc' ? 'rotate(180deg)' : 'none' }}><path d="M12 19V5m0 0-5 5m5-5 5 5" /></svg>
-            {dir === 'asc' ? 'Ascending' : 'Descending'}
-          </button>
+          <div className={s.srcSeg} role="group" aria-label="Sort order" style={{ margin: 0 }}>
+            {(['asc', 'desc'] as const).map(d => (
+              <button type="button" key={d} aria-pressed={dir === d} onClick={() => { setDir(d); ref.current?.focus(); }}
+                title={d === 'asc' ? 'Show results in ascending order' : 'Show results in descending order'}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 14, height: 14, stroke: 'currentColor', fill: 'none', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round', transform: d === 'desc' ? 'rotate(180deg)' : 'none' }}><path d="M12 19V5m0 0-5 5m5-5 5 5" /></svg>
+                {d === 'asc' ? 'Ascending' : 'Descending'}
+              </button>
+            ))}
+          </div>
         </div>
         {err && <div className="err" role="alert">{err}</div>}
         {data?.needFilter && <p className="mut small">Type part of the lens name, or enter a SPH / CYL / ADD value, to search the inventory.</p>}
