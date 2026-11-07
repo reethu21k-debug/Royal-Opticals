@@ -10,12 +10,16 @@ import { fmtPower } from '@/lib/power-format';
  * • click the small system number under a cell to use it ("the shelf matches")
  * • per-block tools: match system stock, set blanks to 0, clear
  * Blank is never zero: an empty cell stays "not counted".
+ *
+ * TARGETS GRID: beside every count grid there is a second grid with the same rows and columns where the target (minimum stock) of each lens is set.
+ * It works the same way (type, Enter/arrows, paste from Excel, every entry saves by itself) and never changes stock. A blank target cell means "leave as it is".
  */
 
 export type GLine = {
   variant_id: string; workbook: string; block: string; row_label_source: string; col_label_source: string | null;
   row_key?: string; col_key?: string | null; row_occurrence?: number; source_col?: number | null;
   recorded_quantity: number | null; recorded_state: string; counted_quantity: number | null; result: string | null;
+  target_quantity?: number | null; target_state?: string | null;
 };
 export type Change = { l: GLine; value: number | null };
 type Cell = GLine | null;
@@ -23,7 +27,7 @@ type Blk = { key: string; workbook: string; block: string; cols: { id: string; l
 type RowState = 'saving' | 'saved' | string;
 
 const MAX = 1_000_000;
-const css: Record<string, string> = Object.fromEntries(["tools", "toolGroup", "label", "legend", "key", "kSame", "kDiff", "kNew", "block", "blockHead", "title", "wb", "bn", "right", "prog", "progBar", "actions", "scroll", "grid", "cell", "ro", "sys", "sysBtn", "cSame", "cDiff", "cNew", "cVoid", "cErr", "cSaved", "cSaving", "tiles", "tile", "tileLabel"].map(n => [n, 'cg-' + n]));
+const css: Record<string, string> = Object.fromEntries(["tools", "toolGroup", "label", "legend", "key", "kSame", "kDiff", "kNew", "block", "blockHead", "title", "wb", "bn", "right", "prog", "progBar", "actions", "scroll", "grid", "cell", "ro", "sys", "sysBtn", "cSame", "cDiff", "cNew", "cVoid", "cErr", "cSaved", "cSaving", "tiles", "tile", "tileLabel", "split", "pane", "paneLabel", "tgt"].map(n => [n, 'cg-' + n]));
 const STYLES = `
 .cg-tools{display:flex;gap:10px 16px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
 .cg-toolGroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -72,6 +76,14 @@ button.cg-sysBtn:hover:not(:disabled){background:none;border:0;box-shadow:none;c
 .cg-tile .cg-sys{display:block;font-size:11.5px;color:var(--mut);text-align:center}
 .cg-tile button.cg-sysBtn{margin:0 auto}
 .cg-cErr.cg-tile .cg-sys{color:var(--bad)}
+
+.cg-split{display:flex;align-items:flex-start}
+.cg-pane{flex:1 1 0;min-width:0}
+.cg-pane+.cg-pane{border-left:3px solid var(--line-strong)}
+.cg-paneLabel{height:30px;display:flex;align-items:center;padding:0 14px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);background:#fff;border-bottom:1px solid var(--line)}
+.cg-tgt .cg-paneLabel{color:var(--info,#2f5bd8)}
+.cg-fillIn{width:76px;height:32px;padding:0 6px;text-align:center;font-weight:650;border-radius:8px}
+@media (max-width:1000px){.cg-split{flex-direction:column;align-items:stretch}.cg-pane+.cg-pane{border-left:0;border-top:3px solid var(--line-strong)}}
 @media (max-width:700px){.cg-cell{min-width:70px}.cg-cell input{width:58px;height:44px;font-size:18px}.cg-blockHead{padding:10px}}
 `;
 
@@ -102,12 +114,16 @@ function build(items: GLine[]): Blk[] {
   return blocks;
 }
 
-export default function CountGrid({ items, open, rowState, onSave, onBulk, onNotice }: {
+export default function CountGrid({ items, open, rowState, onSave, onBulk, onNotice, canSetTargets = false, targetRowState = {}, onSaveTarget, onBulkTargets }: {
   items: GLine[]; open: boolean; rowState: Record<string, RowState>;
   onSave: (l: GLine, raw: string) => void; onBulk: (changes: Change[]) => void; onNotice: (message: string) => void;
+  canSetTargets?: boolean; targetRowState?: Record<string, RowState>;
+  onSaveTarget?: (l: GLine, raw: string) => void; onBulkTargets?: (changes: Change[]) => void;
 }) {
   const blocks = useMemo(() => build(items), [items]);
   const [enter, setEnter] = useState<'right' | 'down'>('right');
+  const [showT, setShowT] = useState(true);   // the targets grid beside the count grid
+  const [fillN, setFillN] = useState('');
   const wrap = useRef<HTMLDivElement>(null);
 
   /* ── keyboard movement ── */
@@ -148,7 +164,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
   }
 
   /* ── paste a block of numbers (from Excel / a list) ── */
-  function onPaste(e: React.ClipboardEvent<HTMLInputElement>, blk: Blk, ri: number, ci: number) {
+  function onPaste(e: React.ClipboardEvent<HTMLInputElement>, blk: Blk, ri: number, ci: number, commit: (changes: Change[]) => void = onBulk) {
     const text = e.clipboardData.getData('text');
     if (!/[\t\n\r]/.test(text.trim())) return;   // a single value pastes normally
     e.preventDefault();
@@ -162,9 +178,46 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
       if (!Number.isInteger(v) || v < 0 || v > MAX) { bad++; return; }
       changes.push({ l: target, value: v });
     }));
-    if (changes.length) onBulk(changes);
+    if (changes.length) commit(changes);
     if (bad || outside) onNotice(`${changes.length ? `Pasted ${changes.length}. ` : ''}${bad ? `${bad} value${bad === 1 ? ' was' : 's were'} not a whole number. ` : ''}${outside ? `${outside} fell outside the grid.` : ''}`.trim());
   }
+
+  /* ── targets grid: keyboard movement (same behaviour as the count grid) ── */
+  const tInputs = () => Array.from(wrap.current?.querySelectorAll<HTMLInputElement>('input[data-tgrid]') ?? []);
+  const tAt = (b: number, r: number, c: number) => wrap.current?.querySelector<HTMLInputElement>(`input[data-tb="${b}"][data-tr="${r}"][data-tc="${c}"]`) ?? null;
+  const tDom = (from: HTMLInputElement, delta: number) => { const all = tInputs(); return all[all.indexOf(from) + delta] ?? null; };
+  function tStep(from: HTMLInputElement, dr: number, dc: number) {
+    const b = +from.dataset.tb!, r = +from.dataset.tr!, c = +from.dataset.tc!; const blk = blocks[b];
+    if (isTiles(b)) { const mine = tInputs().filter(x => x.dataset.tb === from.dataset.tb); return mine[mine.indexOf(from) + (dc !== 0 ? dc : dr)] ?? null; }
+    let rr = r + dr, cc = c + dc;
+    while (blk && rr >= 0 && rr < blk.rows.length && cc >= 0 && cc < blk.cols.length) { const el = tAt(b, rr, cc); if (el) return el; rr += dr; cc += dc; }
+    return null;
+  }
+  function tNextColumnTop(from: HTMLInputElement) {
+    const b = +from.dataset.tb!, c = +from.dataset.tc!; const blk = blocks[b];
+    for (let cc = c + 1; blk && cc < blk.cols.length; cc++) for (let rr = 0; rr < blk.rows.length; rr++) { const el = tAt(b, rr, cc); if (el) return el; }
+    return tDom(from, 1);
+  }
+  function onTKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    const el = e.currentTarget;
+    if (e.key === 'Enter') { e.preventDefault(); go(e.shiftKey ? (enter === 'right' ? tDom(el, -1) : tStep(el, -1, 0) ?? tDom(el, -1)) : (enter === 'right' ? tDom(el, 1) : tStep(el, 1, 0) ?? tNextColumnTop(el))); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); go(tStep(el, 1, 0)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); go(tStep(el, -1, 0)); }
+    else if (e.key === 'ArrowRight' && el.selectionEnd === el.value.length) { e.preventDefault(); go(tStep(el, 0, 1)); }
+    else if (e.key === 'ArrowLeft' && el.selectionStart === 0) { e.preventDefault(); go(tStep(el, 0, -1)); }
+  }
+  // the count grid and the targets grid of one block scroll together, so rows always stay side by side
+  function syncScroll(e: React.UIEvent<HTMLDivElement>) {
+    const t = e.currentTarget; const key = t.dataset.sync; if (key === undefined) return;
+    wrap.current?.querySelectorAll<HTMLDivElement>(`[data-sync="${key}"]`).forEach(x => { if (x !== t && x.scrollTop !== t.scrollTop) x.scrollTop = t.scrollTop; });
+  }
+  const fillTargets = (blk: Blk, all: boolean) => {
+    const v = Number(fillN.trim());
+    if (fillN.trim() === '' || !Number.isInteger(v) || v < 0 || v > MAX) { onNotice('Type a whole number (0 or more) to use as the target.'); return; }
+    const ls = blk.lines.filter(l => all || l.target_quantity === null || l.target_quantity === undefined).filter(l => l.target_quantity !== v);
+    if (!ls.length) { onNotice(all ? `Every target in this block is already ${v}.` : 'Every target in this block is already set.'); return; }
+    if (confirm(`${all ? 'Set' : 'Fill'} ${ls.length} ${all ? '' : 'empty '}target${ls.length === 1 ? '' : 's'} in this block to ${v}?\n\nTargets never change the stock itself. Each change is saved in the target history.`)) onBulkTargets?.(ls.map(l => ({ l, value: v })));
+  };
 
   /* ── block tools ── */
   const matchSystem = (blk: Blk) => {
@@ -203,6 +256,26 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
     </>);
   };
 
+  const tInfo = (l: GLine) => {
+    const st = targetRowState[l.variant_id]; const err = typeof st === 'string' && st !== 'saving' && st !== 'saved' ? st : '';
+    const t = l.target_quantity ?? null; const rec = l.recorded_quantity;
+    return { st, err, t, tone: t !== null && rec !== null && l.recorded_state !== 'missing' && rec < t ? css.cDiff : '' };
+  };
+  const targetInner = (l: GLine, rowLabel: string, blk: Blk, bi: number, ri: number, ci: number) => {
+    const x = tInfo(l); const label = `${fmtPower(rowLabel)}${l.col_label_source ? ' by ' + fmtPower(l.col_label_source) : ''}`;
+    return (<>
+      {canSetTargets
+        ? <input data-tgrid data-tb={bi} data-tr={ri} data-tc={ci} aria-label={`Target for ${label}`} aria-invalid={!!x.err}
+            inputMode="numeric" pattern="[0-9]*" placeholder="–" autoComplete="off"
+            defaultValue={x.t ?? ''} key={`t-${l.variant_id}-${x.t}`}
+            onFocus={e => e.target.select()}
+            onBlur={e => { const v = e.target.value.trim(); if (v === '') { e.target.value = x.t === null ? '' : String(x.t); return; } onSaveTarget?.(l, v); }}
+            onKeyDown={onTKey} onPaste={e => onPaste(e, blk, ri, ci, onBulkTargets ?? onBulk)} />
+        : <span className={css.ro}>{x.t ?? '—'}</span>}
+      <span className={css.sys}>{x.err ? x.err : `stock ${sysText(l)}`}</span>
+    </>);
+  };
+
   if (blocks.length === 0) return <div className="card mut" style={{ padding: 18, textAlign: 'center' }}>No lines match this view.</div>;
 
   return (
@@ -217,6 +290,11 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
             </div></div>
           <button type="button" className="sm" onClick={jumpNextEmpty}>Jump to next empty cell</button>
         </>}
+        <div className={css.toolGroup}><span className={css.label}>Targets grid</span>
+          <div className="pills" role="group" aria-label="Show the targets grid beside the counts">
+            <button type="button" aria-pressed={showT} onClick={() => setShowT(true)}>Beside counts</button>
+            <button type="button" aria-pressed={!showT} onClick={() => setShowT(false)}>Hidden</button>
+          </div></div>
         <span className={css.label}>{open ? 'Tip: copy numbers from Excel and paste them into the first cell.' : 'Counting is closed, so numbers are read-only.'}</span>
       </div>
       <div className={css.legend} aria-label="Colour key">
@@ -224,6 +302,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
         <span className={css.key}><i className={css.kDiff} />different from system</span>
         <span className={css.key}><i className={css.kNew} />no system stock yet</span>
         <span>The small number under each cell is the system stock.</span>
+        {showT && <span className={css.key}><i className={css.kDiff} />targets grid: stock is below the target</span>}
       </div>
 
       {blocks.map((blk, bi) => {
@@ -231,20 +310,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
         const pct = total ? Math.round((counted / total) * 100) : 0;
         const nMatch = blk.lines.filter(l => l.counted_quantity === null && l.recorded_state === 'recorded' && l.recorded_quantity !== null).length;
         const nBlank = total - counted;
-        return (
-          <section key={blk.key} className={`card ${css.block}`} aria-label={`${blk.workbook} ${blk.block}`}>
-            <div className={css.blockHead}>
-              <div className={css.title}><span className={css.wb}>{blk.workbook}</span><span className={css.bn}>{blk.block}</span></div>
-              <div className={css.right}>
-                <span className={css.prog}><span className={css.progBar} aria-hidden="true"><i style={{ width: pct + '%' }} /></span>{counted} of {total} counted</span>
-                {open && <div className={css.actions}>
-                  <button type="button" className="sm" disabled={nMatch === 0} onClick={() => matchSystem(blk)} title="Fill uncounted cells that have system stock with that number">Match system stock{nMatch ? ` (${nMatch})` : ''}</button>
-                  <button type="button" className="sm" disabled={nBlank === 0} onClick={() => blanksToZero(blk)} title="Record every uncounted cell as 0">Set blanks to 0</button>
-                  <button type="button" className="sm danger" disabled={counted === 0} onClick={() => clearBlock(blk)}>Clear</button>
-                </div>}
-              </div>
-            </div>
-            {isTiles(bi)
+        const countBody = isTiles(bi)
               ? <div className={css.tiles} role="group" aria-label={`${blk.block} count`}>
                 {blk.rows.map((r, ri) => { const l = r.cells[0]; if (!l) return null; const x = cellInfo(l); return (
                   <div key={r.id} className={`${css.tile} ${x.tone} ${x.err ? css.cErr : ''} ${x.st === 'saved' ? css.cSaved : ''} ${x.st === 'saving' ? css.cSaving : ''}`} title={x.err || undefined}>
@@ -252,7 +318,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
                     {cellInner(l, r.label, blk, bi, ri, 0)}
                   </div>); })}
               </div>
-              : <div className={css.scroll} tabIndex={0} role="region" aria-label={`${blk.block} count grid`}>
+              : <div className={css.scroll} data-sync={bi} onScroll={syncScroll} tabIndex={0} role="region" aria-label={`${blk.block} count grid`}>
                 <table className={css.grid}>
                   <thead><tr><th scope="col" aria-label="Power" />{blk.cols.map(c => <th key={c.id} scope="col">{fmtPower(c.label) || 'Count'}</th>)}</tr></thead>
                   <tbody>
@@ -272,7 +338,60 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
                     ))}
                   </tbody>
                 </table>
-              </div>}
+              </div>;
+        const targetBody = isTiles(bi)
+      ? <div className={css.tiles} role="group" aria-label={`${blk.block} targets`}>
+        {blk.rows.map((r, ri) => { const l = r.cells[0]; if (!l) return null; const x = tInfo(l); return (
+          <div key={r.id} className={`${css.tile} ${x.tone} ${x.err ? css.cErr : ''} ${x.st === 'saved' ? css.cSaved : ''} ${x.st === 'saving' ? css.cSaving : ''}`} title={x.err || undefined}>
+            <span className={css.tileLabel}>{fmtPower(r.label)}</span>
+            {targetInner(l, r.label, blk, bi, ri, 0)}
+          </div>); })}
+      </div>
+      : <div className={css.scroll} data-sync={bi} onScroll={syncScroll} tabIndex={0} role="region" aria-label={`${blk.block} targets grid`}>
+        <table className={css.grid}>
+          <thead><tr><th scope="col" aria-label="Power" />{blk.cols.map(c => <th key={c.id} scope="col">{fmtPower(c.label) || 'Target'}</th>)}</tr></thead>
+          <tbody>
+            {blk.rows.map((r, ri) => (
+              <tr key={r.id}>
+                <th scope="row">{fmtPower(r.label)}</th>
+                {r.cells.map((l, ci) => {
+                  if (!l) return <td key={ci} className={css.cVoid} aria-hidden="true" />;
+                  const x = tInfo(l);
+                  return (
+                    <td key={ci} className={`${css.cell} ${x.tone} ${x.err ? css.cErr : ''} ${x.st === 'saved' ? css.cSaved : ''} ${x.st === 'saving' ? css.cSaving : ''}`} title={x.err || undefined}>
+                      {targetInner(l, r.label, blk, bi, ri, ci)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>;
+        return (
+          <section key={blk.key} className={`card ${css.block}`} aria-label={`${blk.workbook} ${blk.block}`}>
+            <div className={css.blockHead}>
+              <div className={css.title}><span className={css.wb}>{blk.workbook}</span><span className={css.bn}>{blk.block}</span></div>
+              <div className={css.right}>
+                <span className={css.prog}><span className={css.progBar} aria-hidden="true"><i style={{ width: pct + '%' }} /></span>{counted} of {total} counted</span>
+                {open && <div className={css.actions}>
+                  <button type="button" className="sm" disabled={nMatch === 0} onClick={() => matchSystem(blk)} title="Fill uncounted cells that have system stock with that number">Match system stock{nMatch ? ` (${nMatch})` : ''}</button>
+                  <button type="button" className="sm" disabled={nBlank === 0} onClick={() => blanksToZero(blk)} title="Record every uncounted cell as 0">Set blanks to 0</button>
+                  <button type="button" className="sm danger" disabled={counted === 0} onClick={() => clearBlock(blk)}>Clear</button>
+                </div>}
+                {showT && canSetTargets && <div className={css.actions} role="group" aria-label="Set targets for this block">
+                  <input className="cg-fillIn" inputMode="numeric" pattern="[0-9]*" placeholder="Target" aria-label="Target value for every lens in this block" value={fillN} onChange={e => setFillN(e.target.value)} />
+                  <button type="button" className="sm" onClick={() => fillTargets(blk, false)} title="Give every lens in this block that has no target yet this target">Fill empty targets</button>
+                  <button type="button" className="sm" onClick={() => fillTargets(blk, true)} title="Give every lens in this block this target">Set all targets</button>
+                </div>}
+              </div>
+            </div>
+            {showT
+              ? <div className={css.split}>
+                <div className={css.pane}><div className={css.paneLabel}>Count</div>{countBody}</div>
+                <div className={`${css.pane} ${css.tgt}`}><div className={css.paneLabel}>Targets{canSetTargets ? '' : ' (view only)'}</div>{targetBody}</div>
+              </div>
+              : countBody}
           </section>
         );
       })}

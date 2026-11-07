@@ -9,7 +9,7 @@ import QuickCount from './QuickCount';
 import { fmtPower } from '@/lib/power-format';
 
 type Summary = { lines: number; counted: number; differences: number };
-type Data = { session: any; summary: Summary; items: Line[]; total: number; page: number; pageSize: number };
+type Data = { session: any; canSetTargets?: boolean; summary: Summary; items: Line[]; total: number; page: number; pageSize: number };
 type RowState = 'saving' | 'saved' | string;   // string = error message
 
 const FILTERS: [string, string][] = [['all', 'All'], ['uncounted', 'To count'], ['counted', 'Counted'], ['differences', 'Differences']];
@@ -30,6 +30,7 @@ export default function Count() {
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [rowState, setRowState] = useState<Record<string, RowState>>({});
+  const [targetState, setTargetState] = useState<Record<string, RowState>>({});   // save state of the targets grid, per lens
   const [reload, setReload] = useState(0);
   const [view, setView] = useState<'quick' | 'grid' | 'list' | null>(null);   // null = Quick while counting, List once counting is closed
   const tableRef = useRef<HTMLTableElement>(null);
@@ -70,6 +71,35 @@ export default function Count() {
       });
       return { ...d, items, summary: { ...d.summary, counted, differences } };
     });
+  }
+
+  // ── targets grid (beside the count grid): saved through /api/counts/:id/targets -> set_targets_bulk (history + audit) ──
+  function applyTargetLocal(changes: Map<string, number>) {
+    setData(d => d ? { ...d, items: d.items.map(x => changes.has(x.variant_id) ? { ...x, target_quantity: changes.get(x.variant_id)!, target_state: 'recorded' } : x) } : d);
+  }
+  async function saveTargets(changes: Change[]) {
+    const todo = changes.filter(c => c.value !== null && c.value !== (c.l.target_quantity ?? null)) as { l: Line; value: number }[];
+    if (!todo.length) { setMsg('No target changed.'); return; }
+    setErr(''); setMsg('');
+    const ids = todo.map(c => c.l.variant_id);
+    setTargetState(s => { const n = { ...s }; ids.forEach(i => { n[i] = 'saving'; }); return n; });
+    try {
+      for (let i = 0; i < todo.length; i += 500)
+        await api(`/api/counts/${id}/targets`, { method: 'POST', body: JSON.stringify({ items: todo.slice(i, i + 500).map(c => ({ variantId: c.l.variant_id, target: c.value })) }) });
+      applyTargetLocal(new Map(todo.map(c => [c.l.variant_id, c.value] as const)));
+      setMsg(`Saved ${todo.length} target${todo.length === 1 ? '' : 's'}.`);
+      setTargetState(s => { const n = { ...s }; ids.forEach(i => { n[i] = 'saved'; }); return n; });
+      setTimeout(() => setTargetState(s => { const n = { ...s }; ids.forEach(i => { if (n[i] === 'saved') delete n[i]; }); return n; }), 1500);
+    } catch (e: any) {
+      const m = e.message || 'could not save'; setErr(m);
+      setTargetState(s => { const n = { ...s }; ids.forEach(i => { n[i] = ids.length === 1 ? m : 'Not saved'; }); return n; });
+    }
+  }
+  function saveTarget(l: Line, raw: string) {
+    const v = Number(raw.trim());
+    if (raw.trim() === '' || !Number.isInteger(v) || v < 0 || v > 1_000_000) { setTargetState(s => ({ ...s, [l.variant_id]: 'Whole number, 0 or more' })); return; }
+    if (v === (l.target_quantity ?? null)) { setTargetState(s => { const n = { ...s }; delete n[l.variant_id]; return n; }); return; }
+    void saveTargets([{ l, value: v }]);
   }
 
   async function saveMany(changes: Change[]) {
@@ -177,7 +207,8 @@ export default function Count() {
     </div>
 
     {mode === 'quick' ? <QuickCount key={`${page}|${filter}|${qd}`} items={data.items} rowState={rowState} hasNextPage={page < pages} onNextPage={() => setPage(page + 1)} onSave={save} onNotice={setMsg} /> :
-    mode === 'grid' ? <CountGrid items={data.items} open={open} rowState={rowState} onSave={save} onBulk={saveMany} onNotice={setMsg} /> :
+    mode === 'grid' ? <CountGrid items={data.items} open={open} rowState={rowState} onSave={save} onBulk={saveMany} onNotice={setMsg}
+      canSetTargets={!!data.canSetTargets} targetRowState={targetState} onSaveTarget={saveTarget} onBulkTargets={saveTargets} /> :
     <div className="wrap" tabIndex={0} role="region" aria-label="Count lines" style={{ maxHeight: 'max(420px, calc(100vh - 230px))' }}>
       <table ref={tableRef} className="counttable">
         <thead><tr><th>Lens</th><th className="n">System stock</th><th className="n">You counted</th><th className="n">Difference</th><th>{open ? '' : 'Result'}</th></tr></thead>

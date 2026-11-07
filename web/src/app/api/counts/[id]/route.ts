@@ -40,12 +40,15 @@ export const GET = route(async (req, actor, { params }) => {
       from count_lines where session_id = $1`, [id])).rows[0];
     const lines = (await c.query(`select l.variant_id, l.recorded_quantity, l.recorded_state, l.counted_quantity, l.note, l.result,
         lv.row_label_source, lv.col_label_source, wn.source_name as workbook, bn.source_name as block,
-        (l.counted_quantity - l.recorded_quantity) as difference
-      ${from} where ${cond}
+        (l.counted_quantity - l.recorded_quantity) as difference,
+        sb.target_quantity, sb.target_state
+      ${from} left join stock_balances sb on sb.variant_id = l.variant_id where ${cond}
       order by ${orderBy}
       ${all ? '' : `limit $${args.length + 1} offset $${args.length + 2}`}`, all ? args : [...args, size, offset])).rows;
     const total = (await c.query(`select count(*)::int n ${from} where ${cond}`, args)).rows[0].n;
-    return { session: s, summary: sum, page: all ? 1 : page, pageSize: all ? Math.max(total, 1) : size, total, items: lines };
+    // Only administrators and inventory managers may change targets (the database enforces it too); the screen uses this to show editable or read-only targets.
+    const canSetTargets = !!(await c.query(`select app_role_of() in ('administrator','inventory_manager') as ok`)).rows[0]?.ok;
+    return { session: s, canSetTargets, summary: sum, page: all ? 1 : page, pageSize: all ? Math.max(total, 1) : size, total, items: lines };
   });
 });
 // DELETE /api/counts/:id — removes one count (open, submitted or cancelled; never an approved one). Administrators and inventory managers only.
