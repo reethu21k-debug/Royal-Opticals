@@ -232,6 +232,10 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
     const ls = blk.lines.filter(l => l.counted_quantity === null);
     if (ls.length && confirm(`Record ${ls.length} uncounted line${ls.length === 1 ? '' : 's'} as 0?\n\nOnly do this if you checked and there are none on the shelf. Blank normally means “not counted”.`)) onBulk(ls.map(l => ({ l, value: 0 })));
   };
+  const allToZero = (blk: Blk) => {   // "Add to stock" tab only: every line in the block, counted or not, is recorded as 0
+    const ls = blk.lines.filter(l => l.counted_quantity !== 0);
+    if (ls.length && confirm(`Set ALL ${ls.length} line${ls.length === 1 ? '' : 's'} in this block to 0?\n\nThis also replaces numbers you already entered. When the count is approved, the stock of these lenses becomes 0. You can still change any cell afterwards.`)) onBulk(ls.map(l => ({ l, value: 0 })));
+  };
   const clearBlock = (blk: Blk) => {
     const ls = blk.lines.filter(l => l.counted_quantity !== null);
     if (ls.length && confirm(`Clear ${ls.length} counted line${ls.length === 1 ? '' : 's'} in this block? They go back to “not counted”.`)) onBulk(ls.map(l => ({ l, value: null })));
@@ -400,6 +404,7 @@ export default function CountGrid({ items, open, rowState, onSave, onBulk, onNot
                 {open && !targetsOnly && <div className={css.actions}>
                   <button type="button" className="sm" disabled={nMatch === 0} onClick={() => matchSystem(blk)} title="Fill uncounted cells that have system stock with that number">Match system stock{nMatch ? ` (${nMatch})` : ''}</button>
                   <button type="button" className="sm" disabled={nBlank === 0} onClick={() => blanksToZero(blk)} title="Record every uncounted cell as 0">Set blanks to 0</button>
+                  {additive && <button type="button" className="sm danger" disabled={blk.lines.every(l => l.counted_quantity === 0)} onClick={() => allToZero(blk)} title="Record every lens in this block as 0, so all its stock becomes 0">Set all to 0</button>}
                   <button type="button" className="sm danger" disabled={counted === 0} onClick={() => clearBlock(blk)}>Clear</button>
                 </div>}
                 {(split || targetsOnly) && canSetTargets && <div className={css.actions} role="group" aria-label="Set targets for this block">
